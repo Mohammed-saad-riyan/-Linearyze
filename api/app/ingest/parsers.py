@@ -48,7 +48,7 @@ def _pdf_line_text(line: dict) -> str:  # type: ignore[type-arg]
 
 def parse_pdf(path: Path) -> list[Passage]:
     passages: list[Passage] = []
-    with pymupdf.open(path) as pdf:
+    with pymupdf.open(path) as pdf:  # type: ignore[no-untyped-call]
         for page_no, page in enumerate(pdf, start=1):
             pending: list[str] = []
             size = 0
@@ -112,28 +112,21 @@ def parse_xlsx(path: Path) -> list[Passage]:
     passages: list[Passage] = []
     wb = openpyxl.load_workbook(path, data_only=True)
     for ws in wb.worksheets:
-        block: list[str] = []
-        first_row = last_row = 0
-        last_col = 1
-
-        def flush(ws_title: str = ws.title) -> None:
-            if block:
-                cell_range = f"A{first_row}:{get_column_letter(last_col)}{last_row}"
-                passages.append(Passage("\n".join(block), sheet=ws_title, cell_range=cell_range))
-                block.clear()
-
-        for row in ws.iter_rows():
+        block: list[tuple[int, int, str]] = []  # (row, last column, text)
+        for row in [*ws.iter_rows(), ()]:  # the empty sentinel row flushes the last block
             cells = [(c.column, _cell_text(c)) for c in row if _cell_text(c)]
-            if not cells:
-                flush()
+            if cells:
+                block.append((row[0].row, cells[-1][0], " | ".join(t for _, t in cells)))
                 continue
-            if not block:
-                first_row = row[0].row
-                last_col = 1
-            last_row = row[0].row
-            last_col = max(last_col, cells[-1][0])
-            block.append(" | ".join(text for _, text in cells))
-        flush()
+            if block:
+                last_col = max(col for _, col, _ in block)
+                cell_range = f"A{block[0][0]}:{get_column_letter(last_col)}{block[-1][0]}"
+                passages.append(
+                    Passage(
+                        "\n".join(t for _, _, t in block), sheet=ws.title, cell_range=cell_range
+                    )
+                )
+                block = []
     return passages
 
 

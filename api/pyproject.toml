@@ -31,6 +31,8 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "ERA", "T20", "BLE"]
+# Line length is the formatter's job; long string literals (messages, patterns) stay whole.
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -40,3 +42,4 @@ plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]

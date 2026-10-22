@@ -47,8 +47,9 @@ RERANK_TOP_N = 20
 # Cohere rerank-v3.5 scores are calibrated per query; 0.30 kept every golden answerable
 # query and rejected all below-threshold probes in eval/golden_assistant.yaml.
 RERANK_THRESHOLD_LIVE = 0.30
-# Offline reranker is term coverage in [0, 1]; below half the query terms is noise.
-RERANK_THRESHOLD_OFFLINE = 0.5
+# Offline reranker is term coverage in [0, 1]. 0.6 means two of three query terms, or
+# three of four; at 0.5 a year plus the event name matched almost every document.
+RERANK_THRESHOLD_OFFLINE = 0.6
 METADATA_HIT_SCORE = 1.0  # documents found by an exact metadata plan outrank any passage score
 
 # Grading (SRS 1.6.12): the top two grade scores closer than this means the query is ambiguous.

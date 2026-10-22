@@ -18,9 +18,11 @@ events:
   - id: EXPO26
     name_en: Riyadh Design Expo 2026
     name_ar: معرض الرياض للتصميم 2026
+    aliases: [expo 2026, riyadh design expo, the expo, معرض 2026, معرض الرياض للتصميم]
   - id: HERITAGE26
     name_en: Najd Heritage Festival 2026
     name_ar: مهرجان نجد للتراث 2026
+    aliases: [najd heritage festival, heritage festival, مهرجان نجد للتراث, مهرجان التراث]
 
 # All organisations are fictional. Aliases are matched after normalization, so spelling
 # variants with or without hamza and diacritics need only one entry.

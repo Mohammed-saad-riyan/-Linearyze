@@ -17,7 +17,8 @@ CREATE TABLE users (
 CREATE TABLE events (
     id      text PRIMARY KEY,
     name_en text NOT NULL,
-    name_ar text NOT NULL
+    name_ar text NOT NULL,
+    aliases text[] NOT NULL DEFAULT '{}'  -- normalized, like org_aliases
 );
 
 -- Employee scope = assigned events (SRS 0.9.2.2).

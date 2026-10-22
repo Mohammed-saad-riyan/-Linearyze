@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import secrets
 from dataclasses import dataclass
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Cookie, Depends, HTTPException
@@ -94,10 +95,9 @@ def require(capability: str):  # type: ignore[no-untyped-def]
     if capability not in matrix().capabilities:
         raise KeyError(f"unknown capability {capability!r}")
 
-    def check(user: CurrentUser = Depends(current_user)) -> CurrentUser:
+    def check(user: Annotated[CurrentUser, Depends(current_user)]) -> CurrentUser:
         if not matrix().allows(user.role, capability):
             raise HTTPException(status_code=403, detail={"message_id": "M10"})
         return user
 
     return check
-

@@ -5,23 +5,26 @@ from uuid import UUID
 
 import psycopg
 from pgvector.psycopg import register_vector
-from psycopg.rows import dict_row
+from psycopg.rows import DictRow, dict_row
 from psycopg_pool import ConnectionPool
 
 from app.config import settings
 
-_pool: ConnectionPool | None = None
+Conn = psycopg.Connection[DictRow]
+
+_pool: ConnectionPool[Conn] | None = None
 
 
-def _configure(conn: psycopg.Connection) -> None:
+def _configure(conn: Conn) -> None:
     register_vector(conn)
 
 
-def pool() -> ConnectionPool:
+def pool() -> ConnectionPool[Conn]:
     global _pool
     if _pool is None:
         _pool = ConnectionPool(
             settings.database_url,
+            connection_class=Conn,
             min_size=1,
             max_size=10,
             kwargs={"row_factory": dict_row},
@@ -32,7 +35,7 @@ def pool() -> ConnectionPool:
 
 
 @contextmanager
-def as_user(user_id: UUID | None) -> Iterator[psycopg.Connection]:
+def as_user(user_id: UUID | None) -> Iterator[Conn]:
     """A transaction in which RLS sees `user_id` as the caller.
 
     set_config(..., true) is transaction-local, so the identity cannot leak to the next
@@ -48,7 +51,7 @@ def as_user(user_id: UUID | None) -> Iterator[psycopg.Connection]:
 
 
 @contextmanager
-def as_owner() -> Iterator[psycopg.Connection]:
+def as_owner() -> Iterator[Conn]:
     """Owner connection for migrations, seeding and ingestion. Never used by a request."""
     with psycopg.connect(settings.owner_database_url, row_factory=dict_row) as conn:
         yield conn
@@ -57,7 +60,7 @@ def as_owner() -> Iterator[psycopg.Connection]:
 SQL_DIR = Path(__file__).parent
 
 
-def migrate(conn: psycopg.Connection) -> None:
+def migrate(conn: Conn) -> None:
     """Drop and recreate everything, then register the vector type on this connection."""
     conn.execute("DROP SCHEMA IF EXISTS public CASCADE")
     conn.execute("CREATE SCHEMA public")
