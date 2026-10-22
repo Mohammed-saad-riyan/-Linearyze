@@ -31,8 +31,20 @@ SEED = Path(__file__).parent
 CORPUS = SEED / "corpus"
 FONTS = SEED / "fonts"
 
-AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس",
-             "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+AR_MONTHS = [
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
+]
 AR_DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 
 
@@ -49,8 +61,8 @@ def english_date(d: dt.date) -> str:
 
 
 CSS = f"""
-@font-face {{ font-family: Amiri; src: url("{(FONTS / 'Amiri-Regular.ttf').as_uri()}"); }}
-@font-face {{ font-family: Amiri; font-weight: bold; src: url("{(FONTS / 'Amiri-Bold.ttf').as_uri()}"); }}
+@font-face {{ font-family: Amiri; src: url("{(FONTS / "Amiri-Regular.ttf").as_uri()}"); }}
+@font-face {{ font-family: Amiri; font-weight: bold; src: url("{(FONTS / "Amiri-Bold.ttf").as_uri()}"); }}
 @page {{ size: A4; margin: 22mm 20mm; }}
 body {{ font-family: Amiri, serif; font-size: 12pt; line-height: 1.55; color: #1d1d1b;
         font-variant-ligatures: none; }}
@@ -82,29 +94,41 @@ def render_pdf(doc: dict[str, Any], orgs: dict[str, Any], out: Path) -> None:
 
     if doc["format"] == "letter":
         primary, secondary = (sender_ar, sender_en) if rtl else (sender_en, sender_ar)
-        parts.append(f'<div class="head"><div class="org">{e(primary)}</div>'
-                     f'<div class="org-alt">{e(secondary)}</div></div>')
+        parts.append(
+            f'<div class="head"><div class="org">{e(primary)}</div>'
+            f'<div class="org-alt">{e(secondary)}</div></div>'
+        )
         date = doc["document_date"]
         if rtl:
-            parts.append(f'<div class="meta"><div>الرقم: {e(doc["reference_no"])}</div>'
-                         f"<div>التاريخ: {e(arabic_date(date))}</div></div>")
+            parts.append(
+                f'<div class="meta"><div>الرقم: {e(doc["reference_no"])}</div>'
+                f"<div>التاريخ: {e(arabic_date(date))}</div></div>"
+            )
         else:
-            parts.append(f'<div class="meta"><div>Ref: {e(doc["reference_no"])}</div>'
-                         f"<div>Date: {e(english_date(date))}</div></div>")
+            parts.append(
+                f'<div class="meta"><div>Ref: {e(doc["reference_no"])}</div>'
+                f"<div>Date: {e(english_date(date))}</div></div>"
+            )
         subject_label = "الموضوع" if rtl else "Subject"
         parts.append(f"<h1>{subject_label}: {e(doc['title'])}</h1>")
     else:
         parts.append('<div class="head"><div class="org">Linearyze | لينيرايز</div></div>')
         parts.append(f"<h1>{e(doc['title'])}</h1>")
         if doc.get("contract_no"):
-            parts.append(f'<div class="meta"><div>Contract no: {e(doc["contract_no"])}</div>'
-                         f'<div>Date: {e(doc["document_date"].strftime("%d %B %Y"))}</div></div>')
+            parts.append(
+                f'<div class="meta"><div>Contract no: {e(doc["contract_no"])}</div>'
+                f"<div>Date: {e(doc['document_date'].strftime('%d %B %Y'))}</div></div>"
+            )
         elif not rtl:
-            parts.append(f'<div class="meta"><div>Date: '
-                         f'{e(doc["document_date"].strftime("%d %B %Y"))}</div></div>')
+            parts.append(
+                f'<div class="meta"><div>Date: '
+                f"{e(doc['document_date'].strftime('%d %B %Y'))}</div></div>"
+            )
         else:
-            parts.append(f'<div class="meta"><div>التاريخ: {e(arabic_date(doc["document_date"]))}'
-                         f"</div></div>")
+            parts.append(
+                f'<div class="meta"><div>التاريخ: {e(arabic_date(doc["document_date"]))}'
+                f"</div></div>"
+            )
 
     for para in doc.get("body", []):
         parts.append(f"<p>{e(para)}</p>")
@@ -113,8 +137,10 @@ def render_pdf(doc: dict[str, Any], orgs: dict[str, Any], out: Path) -> None:
         parts.extend(f"<p>{e(p)}</p>" for p in section["paragraphs"])
 
     if doc.get("signatory"):
-        parts.append(f'<div class="sig"><div>{e(doc["signatory"])}</div>'
-                     f'<div>{e(doc["signatory_title"])}</div></div>')
+        parts.append(
+            f'<div class="sig"><div>{e(doc["signatory"])}</div>'
+            f"<div>{e(doc['signatory_title'])}</div></div>"
+        )
     if doc["confidentiality"] == "confidential":
         parts.append(f'<div class="stamp">{"سري" if rtl else "CONFIDENTIAL"}</div>')
     parts.append("</body></html>")

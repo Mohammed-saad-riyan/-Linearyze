@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* One accent (a deep teal), warm neutrals, and an ochre reserved for the M7 conflict
+   notice. Everything else is ink on paper. */
+:root {
+  --paper: #f6f5f1;
+  --surface: #ffffff;
+  --sunken: #efede7;
+  --ink: #1d1c1a;
+  --ink-2: #4a4843;
+  --muted: #7a776f;
+  --line: #e3e0d8;
+  --line-strong: #cfcbc0;
+  --accent: #0d5c56;
+  --accent-ink: #0a4945;
+  --accent-wash: #e6f0ee;
+  --ochre: #9a6a12;
+  --ochre-wash: #f8f0de;
+  --mark: #fbe7a6;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-ochre: var(--ochre);
+  --color-ochre-wash: var(--ochre-wash);
+  --color-mark: var(--mark);
+  --font-sans: var(--font-plex), var(--font-plex-arabic), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Arabic reads better a little larger and with more line height. */
+:lang(ar) {
+  font-family: var(--font-plex-arabic), var(--font-plex), system-ui, sans-serif;
+}
+[dir="rtl"] body {
+  font-size: 1.03rem;
+  line-height: 1.75;
+}
+
+/* Directional icons flip in RTL; numbers and logos do not. */
+[dir="rtl"] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+::selection {
+  background: var(--accent-wash);
+}
+
+mark {
+  background: var(--mark);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
