@@ -1,0 +1,53 @@
+# Demo accounts. Passwords are public on the login page of the demo; this is fictional data.
+users:
+  - email: management@demo.lnz
+    password: demo-management
+    name: Faisal Al-Harbi
+    role: management
+  - email: employee@demo.lnz
+    password: demo-employee
+    name: Noura Al-Mutairi
+    role: employee
+    events: [EXPO26]          # not assigned to HERITAGE26, so its documents are invisible
+  - email: admin@demo.lnz
+    password: demo-admin
+    name: Khalid Al-Zahrani
+    role: admin
+
+events:
+  - id: EXPO26
+    name_en: Riyadh Design Expo 2026
+    name_ar: معرض الرياض للتصميم 2026
+  - id: HERITAGE26
+    name_en: Najd Heritage Festival 2026
+    name_ar: مهرجان نجد للتراث 2026
+
+# All organisations are fictional. Aliases are matched after normalization, so spelling
+# variants with or without hamza and diacritics need only one entry.
+organizations:
+  - id: LNZ
+    name_en: Linearyze
+    name_ar: لينيرايز
+    aliases: [linearyze, لينيرايز]
+  - id: MEH
+    name_en: Ministry of Exhibitions and Heritage
+    name_ar: وزارة المعارض والتراث
+    aliases: [ministry of exhibitions and heritage, ministry a, the ministry, meh,
+              وزارة المعارض والتراث, وزارة المعارض, الوزارة]
+  - id: GAES
+    name_en: General Authority for Events Safety
+    name_ar: الهيئة العامة لسلامة الفعاليات
+    aliases: [general authority for events safety, authority b, events safety authority, gaes,
+              الهيئة العامة لسلامة الفعاليات, هيئة سلامة الفعاليات, الهيئة]
+  - id: SADU
+    name_en: Sadu Furnishings Co.
+    name_ar: شركة سدو للمفروشات
+    aliases: [sadu furnishings, sadu, شركة سدو للمفروشات, سدو للمفروشات, سدو]
+  - id: QAMAR
+    name_en: Qamar Lighting Trading Est.
+    name_ar: مؤسسة قمر للإضاءة
+    aliases: [qamar lighting, qamar, مؤسسة قمر للإضاءة, قمر للإضاءة, قمر]
+  - id: WADI
+    name_en: Wadi Crafts Cooperative
+    name_ar: جمعية وادي للحرف
+    aliases: [wadi crafts, wadi, جمعية وادي للحرف, وادي للحرف]
