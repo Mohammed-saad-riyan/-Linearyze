@@ -1,0 +1,42 @@
+[project]
+name = "linearyze-ems-api"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "psycopg[binary,pool]>=3.2",
+  "pgvector>=0.3",
+  "pymupdf>=1.25",
+  "python-docx>=1.1",
+  "openpyxl>=3.1",
+  "pyyaml>=6.0",
+  "httpx>=0.27",
+  "anthropic>=0.40",
+  "cohere>=5.11",
+  "numpy>=2.0",
+  "python-bidi>=0.6",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.7", "mypy>=1.13", "types-pyyaml"]
+# Only needed to regenerate seed/corpus; the rendered files are committed.
+corpus = ["weasyprint>=63", "hijridate>=2.5"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "ERA", "T20", "BLE"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

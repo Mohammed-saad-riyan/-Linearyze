@@ -1,0 +1,40 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ems
+      POSTGRES_USER: ems_owner
+      POSTGRES_PASSWORD: ems_owner
+    ports: ["5433:5432"]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ems_owner -d ems"]
+      interval: 2s
+      retries: 30
+
+  api:
+    build: ./api
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://ems_app:ems_app@db:5432/ems
+      OWNER_DATABASE_URL: postgresql://ems_owner:ems_owner@db:5432/ems
+      STORAGE_DIR: /srv/seed/corpus
+      PERMISSION_MATRIX_PATH: /srv/seed/permission_matrix.yaml
+    volumes:
+      - ./seed:/srv/seed:ro
+      - ./eval:/srv/eval:ro
+    depends_on:
+      db: {condition: service_healthy}
+    ports: ["8000:8000"]
+
+  web:
+    build: ./web
+    environment:
+      API_ORIGIN: http://api:8000
+    depends_on: [api]
+    ports: ["3000:3000"]
+
+volumes:
+  db-data:
