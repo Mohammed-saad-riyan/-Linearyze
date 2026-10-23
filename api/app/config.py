@@ -19,12 +19,16 @@ class Settings(BaseSettings):
     # "auto" uses Claude/Cohere when the key is present and the offline provider otherwise.
     provider: Literal["auto", "live", "offline"] = "auto"
 
-    llm_model: str = "claude-opus-5-5"
+    # Grading and extraction are on the M1 latency path, so they use the faster model with
+    # thinking off; writing the Output B answer is not, so it gets the stronger one.
+    llm_fast_model: str = "claude-sonnet-5-5"
+    llm_writer_model: str = "claude-opus-5-5"
     embed_model: str = "embed-v4.0"
     rerank_model: str = "rerank-v3.5"
 
-    storage_dir: Path = REPO_ROOT / "seed" / "corpus"
-    permission_matrix_path: Path = REPO_ROOT / "seed" / "permission_matrix.yaml"
+    storage_dir: Path = REPO_ROOT / "seed" / "corpus"  # read by the ingester only
+    # Ships inside the API package so a deployed function needs nothing from seed/.
+    permission_matrix_path: Path = Path(__file__).parent / "auth" / "permission_matrix.yaml"
 
     session_secure_cookie: bool = False
 
@@ -47,6 +51,10 @@ RERANK_TOP_N = 20
 # Cohere rerank-v3.5 scores are calibrated per query; 0.30 kept every golden answerable
 # query and rejected all below-threshold probes in eval/golden_assistant.yaml.
 RERANK_THRESHOLD_LIVE = 0.30
+# Output A/D from passage search alone (no title or metadata match) needs a stronger score:
+# at 0.30 "the board memo" found an unrelated memo for a user who cannot see the board memo.
+DOCUMENT_THRESHOLD_LIVE = 0.50
+DOCUMENT_THRESHOLD_OFFLINE = 0.75
 # Offline reranker is term coverage in [0, 1]. 0.6 means two of three query terms, or
 # three of four; at 0.5 a year plus the event name matched almost every document.
 RERANK_THRESHOLD_OFFLINE = 0.6
@@ -57,9 +65,9 @@ GRADE_GAP = 0.15
 
 # M1 (SRS 1.5.4): every M1 response is held until this many seconds after the request
 # started, so "does not exist", "no access", "below threshold" and "not indexed" take the
-# same time. Set above the p99 of the slowest path that can end in M1 (grade + retrieve +
-# rerank); see docs/EVAL_REPORT.md for the measured distribution.
-M1_LATENCY_FLOOR_S = 4.0
+# same time. Set above the slowest path that can end in M1 (grade + retrieve + rerank),
+# measured at 2.5 to 4.5 s with warm schemas; see docs/EVAL_REPORT.md.
+M1_LATENCY_FLOOR_S = 6.0
 M1_LATENCY_FLOOR_OFFLINE_S = 0.6
 
 MAX_QUERY_CHARS = 2000  # beyond this the request gets M5

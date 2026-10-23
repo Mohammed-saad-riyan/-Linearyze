@@ -9,6 +9,7 @@ API failures are translated into two exceptions that the HTTP layer maps to M3 a
 
 from functools import cache
 from pathlib import Path
+from typing import Any
 
 import anthropic
 from pydantic import BaseModel
@@ -37,17 +38,27 @@ def prompt(name: str) -> str:
     return (PROMPTS / f"{name}.md").read_text()
 
 
-def structured[T: BaseModel](prompt_name: str, user_content: str, schema: type[T]) -> T:
+def structured[T: BaseModel](
+    prompt_name: str, user_content: str, schema: type[T], *, writer: bool = False
+) -> T:
+    """`writer=True` for Output B prose; everything else is classification or extraction
+    against a fixed schema and runs on the fast model with thinking off."""
+    options: dict[str, Any] = (
+        {"model": settings.llm_writer_model, "output_config": {"effort": "low"}}
+        if writer
+        else {
+            "model": settings.llm_fast_model,
+            "thinking": {"type": "between_tools"},
+            "output_config": {"effort": "low"},
+        }
+    )
     try:
         response = _client().messages.parse(
-            model=settings.llm_model,
             max_tokens=4000,
             system=prompt(prompt_name),
             messages=[{"role": "user", "content": user_content}],
             output_format=schema,
-            # Every call here is classification or short extraction against a fixed
-            # schema; low effort keeps latency inside the M1 timing floor.
-            output_config={"effort": "low"},
+            **options,
         )
     except anthropic.APITimeoutError as exc:
         raise LLMTimeout from exc
