@@ -11,6 +11,7 @@ import mimetypes
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import yaml
 
 from app.auth.sessions import hash_password
@@ -76,7 +77,9 @@ def _alt_title(doc: dict[str, Any]) -> str | None:
     return alt if alt and alt != doc["title"] else None
 
 
-def ingest_document(conn: Conn, doc: dict[str, Any], uploader: Any) -> int:
+def store_document(conn: Conn, doc: dict[str, Any], uploader: Any) -> list[str]:
+    """Write the document row and its file. Returns the texts to embed (empty if the
+    document is uploaded but not yet indexed)."""
     path: Path = settings.storage_dir / doc["file"]
     raw = path.read_bytes()
     alt = _alt_title(doc)
@@ -129,14 +132,14 @@ def ingest_document(conn: Conn, doc: dict[str, Any], uploader: Any) -> int:
         "INSERT INTO document_files (document_id, content) VALUES (%s, %s)", (doc["id"], raw)
     )
     if doc.get("indexed", True) is False:
-        return 0  # uploaded, waiting for the indexer: indexed_at stays NULL, no chunks
-
-    passages = parse(path)
+        return []  # uploaded, waiting for the indexer: indexed_at stays NULL, no chunks
     # Titles (both languages) and the section heading are embedded with each passage, so
     # "the permit application" or "الإيرادات" finds a passage that never repeats them.
-    vectors = embed_documents(
-        [passage_context(doc["title"], alt, p.heading, p.text) for p in passages]
-    )
+    return [passage_context(doc["title"], alt, p.heading, p.text) for p in parse(path)]
+
+
+def index_document(conn: Conn, doc: dict[str, Any], vectors: list[np.ndarray]) -> None:
+    passages = parse(settings.storage_dir / doc["file"])
     for ordinal, (passage, vector) in enumerate(zip(passages, vectors, strict=True)):
         conn.execute(
             """
@@ -160,7 +163,6 @@ def ingest_document(conn: Conn, doc: dict[str, Any], uploader: Any) -> int:
     conn.execute(
         "UPDATE documents SET indexed_at = %s WHERE id = %s", (dt.datetime.now(dt.UTC), doc["id"])
     )
-    return len(passages)
 
 
 def mark_latest_versions(conn: Conn) -> None:
@@ -176,8 +178,16 @@ def ingest_corpus(conn: Conn) -> dict[str, int]:
     uploader = conn.execute(
         "SELECT id FROM users WHERE role = 'management' ORDER BY email LIMIT 1"
     ).fetchone()
-    counts = {}
-    for doc in load_yaml("corpus_manifest.yaml")["documents"]:
-        counts[doc["id"]] = ingest_document(conn, doc, uploader["id"] if uploader else None)
+    documents = load_yaml("corpus_manifest.yaml")["documents"]
+    texts = {
+        d["id"]: store_document(conn, d, uploader["id"] if uploader else None) for d in documents
+    }
+    # One embedding request for the whole corpus rather than one per document: fewer round
+    # trips, and it stays inside the provider's per-minute limits.
+    flat = [t for d in documents for t in texts[d["id"]]]
+    vectors = iter(embed_documents(flat))
+    for doc in documents:
+        if texts[doc["id"]]:
+            index_document(conn, doc, [next(vectors) for _ in texts[doc["id"]]])
     mark_latest_versions(conn)
-    return counts
+    return {d["id"]: len(texts[d["id"]]) for d in documents}
