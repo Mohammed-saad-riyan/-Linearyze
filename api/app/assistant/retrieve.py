@@ -56,8 +56,13 @@ def search_passages(
     query: str,
     query_vector: np.ndarray,
     within: list[str] | None = None,
+    rerank_passages: bool = True,
 ) -> list[PassageHit]:
-    """Passages relevant to `query` that pass the threshold, best first."""
+    """Passages relevant to `query` that pass the threshold, best first.
+
+    With rerank_passages=False the fused full-text + vector order is returned as is, with
+    the RRF score, and no threshold: for callers that verify every passage they use.
+    """
     where, params = filter_sql(plan)
     if within is not None:
         where += " AND d.id = ANY(%(within)s)"
@@ -104,6 +109,20 @@ def search_passages(
         ).fetchall()
     }
     ordered = [rows[cid] for cid in candidate_ids]
+    if not rerank_passages:
+        return [
+            PassageHit(
+                r["id"],
+                r["document_id"],
+                r["text_original"],
+                1.0 / (RRF_K + rank + 1),
+                r["page"],
+                r["heading"],
+                r["sheet"],
+                r["cell_range"],
+            )
+            for rank, r in enumerate(ordered)
+        ]
     texts = [
         passage_context(r["title"], r["title_alt"], r["heading"], r["text_original"])
         for r in ordered

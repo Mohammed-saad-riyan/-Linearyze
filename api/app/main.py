@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 import time
 from collections import defaultdict, deque
 from typing import Annotated, Any
@@ -23,6 +24,8 @@ from app.config import (
 )
 from app.db.session import as_user
 from app.text.arabic import detect_language
+
+log = logging.getLogger("ems")
 
 app = FastAPI(
     title="Linearyze EMS proof of concept", docs_url="/api/docs", openapi_url="/api/openapi.json"
@@ -146,9 +149,11 @@ def assistant_query(
     try:
         with as_user(user.id) as conn:
             outcome = assistant.run(conn, body.query, DEMO_TODAY, debug=body.debug)
-    except llm.LLMTimeout:
+    except llm.LLMTimeout as exc:
+        log.warning("M4: %r caused by %r", exc, exc.__cause__)
         return _message_response("M4", lang, 504)
-    except llm.LLMUnavailable:
+    except llm.LLMUnavailable as exc:
+        log.warning("M3: %r caused by %r", exc, exc.__cause__)
         return _message_response("M3", lang, 503)
 
     if outcome.message_id == "M1":
@@ -201,9 +206,11 @@ def advisor_query(
                 [t.text for t in body.history if t.role == "user"],
                 debug=body.debug,
             )
-    except llm.LLMTimeout:
+    except llm.LLMTimeout as exc:
+        log.warning("M4: %r caused by %r", exc, exc.__cause__)
         return _message_response("M4", lang, 504)
-    except llm.LLMUnavailable:
+    except llm.LLMUnavailable as exc:
+        log.warning("M3: %r caused by %r", exc, exc.__cause__)
         return _message_response("M3", lang, 503)
     _audit(
         user,

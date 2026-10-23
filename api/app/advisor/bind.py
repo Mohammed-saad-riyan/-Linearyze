@@ -238,7 +238,11 @@ def _document_value(
 ) -> tuple[Figure | None, list[Figure]]:
     query = f"{term.label} {context}".strip()
     vector: np.ndarray = embed_query(query)
-    passages = search_passages(conn, plan, query, vector)[:8]
+    # Live, the model points at the figure among the fused candidates and code verifies it,
+    # so a rerank call per term buys little and costs rate limit. The offline matcher has no
+    # judgement of its own and relies on the (free) offline reranker to filter.
+    live = settings.use_live_cohere()
+    passages = search_passages(conn, plan, query, vector, rerank_passages=not live)[:8]
     if not passages:
         return None, []
     pointed = (
