@@ -60,7 +60,7 @@ def _draft_live(question: str, lang: str, block: str, errors: list[str]) -> Answ
     )
     if errors:
         content += "\n\nErrors in your previous attempt:\n" + "\n".join(f"- {e}" for e in errors)
-    return llm.structured("answer", content, AnswerDraft)
+    return llm.structured("answer", content, AnswerDraft, writer=True)
 
 
 _SENTENCE_END = re.compile(r"(?<=[.!?؟])\s+")
@@ -121,12 +121,20 @@ def _draft_offline(question: str, passages: list[PassageHit]) -> AnswerDraft:
     return AnswerDraft(sentences=sentences)
 
 
-def _check(draft: AnswerDraft, passages: list[PassageHit], known_names: list[str]):  # type: ignore[no-untyped-def]
+def _check(  # type: ignore[no-untyped-def]
+    draft: AnswerDraft, passages: list[PassageHit], known_names: list[str], titles: dict[str, str]
+):
     by_number = {n: p.text for n, p in enumerate(passages, start=1)}
+    title_by_number = {n: titles[p.document_id] for n, p in enumerate(passages, start=1)}
     checks = []
     for sentence in draft.sentences:
         quotes = [(q.passage, q.quote) for q in sentence.quotes]
-        checks.append((sentence, check_sentence(sentence.text, quotes, by_number, known_names)))
+        checks.append(
+            (
+                sentence,
+                check_sentence(sentence.text, quotes, by_number, known_names, title_by_number),
+            )
+        )
     return checks
 
 
@@ -141,7 +149,7 @@ def write_answer(
     live = settings.use_live_llm()
     block = _passage_block(passages, titles)
     draft = _draft_live(question, lang, block, []) if live else _draft_offline(question, passages)
-    checks = _check(draft, passages, known_names)
+    checks = _check(draft, passages, known_names, titles)
 
     regenerated = False
     failures = [
@@ -149,7 +157,7 @@ def write_answer(
     ]
     if failures and live:
         regenerated = True
-        checks = _check(_draft_live(question, lang, block, failures), passages, known_names)
+        checks = _check(_draft_live(question, lang, block, failures), passages, known_names, titles)
 
     kept, dropped = [], []
     for sentence, check in checks:

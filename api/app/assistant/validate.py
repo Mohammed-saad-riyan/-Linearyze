@@ -199,7 +199,11 @@ def check_sentence(
     quotes: list[tuple[int, str]],
     passages: dict[int, str],
     known_names: list[str],
+    cited_titles: dict[int, str] | None = None,
 ) -> SentenceCheck:
+    """`cited_titles` maps passage ids to their document titles. A sentence may name the
+    document it cites ("The Booth Services Order states ..."): the title is the citation
+    label shown on the card, not a fact taken from the text."""
     result = SentenceCheck()
     for passage_id, quote in quotes:
         source = passages.get(passage_id)
@@ -226,7 +230,14 @@ def check_sentence(
     for missing_n in sorted(numbers - quoted_numbers):
         result.errors.append(f"number {missing_n} is not in the quotes")
     quoted_norm = f" {normalize(quoted)} "
+    titles = " | ".join(
+        normalize(cited_titles[q.passage_id])
+        for q in result.quotes
+        if cited_titles and q.passage_id in cited_titles
+    )
     for name in sorted(find_names(sentence, known_names)):
+        if name in titles:
+            continue
         if f" {name} " not in quoted_norm and name not in quoted_norm:
             result.errors.append(f"name '{name}' is not in the quotes")
     return result

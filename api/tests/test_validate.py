@@ -82,3 +82,12 @@ def test_1_8_2_15_preference_words_are_detected() -> None:
     assert PREFERENCE_WORDS.search(normalize("The 45-day term is the correct one."))
     assert PREFERENCE_WORDS.search(normalize("المدة الأحدث هي ٤٥ يوماً"))
     assert not PREFERENCE_WORDS.search(normalize("The Booth Services Order states 45 days."))
+
+
+def test_1_8_2_12_sentence_may_name_the_document_it_cites() -> None:
+    sentence = "The Booth Services Order states payment within 30 days."
+    quotes = [(1, "within 30 days")]
+    assert not check_sentence(sentence, quotes, PASSAGES, NAMES).ok
+    assert check_sentence(sentence, quotes, PASSAGES, NAMES, {1: "Booth Services Order"}).ok
+    # Naming a document it does not cite is still an unsupported name.
+    assert not check_sentence(sentence, quotes, PASSAGES, NAMES, {2: "Booth Services Order"}).ok
