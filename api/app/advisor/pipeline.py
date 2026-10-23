@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from app.advisor.bind import Binding, Figure, bind_terms
 from app.advisor.evaluate import (
     CalculationError,
+    FormulaNotApplicable,
     MixedCurrencies,
     Quantity,
     Unit,
@@ -246,7 +247,9 @@ def run(conn: Conn, query: str, history: list[str], debug: bool = False) -> Advi
     missing = [b.term.label for b in bindings if b.figure is None]
     if missing:
         if graded.grade == "LKP":
-            return _e("M1", lang, graded)
+            # 2.9.3: the same M9 whether the figure is absent or only in documents the
+            # user cannot read; RLS makes those two cases identical before we get here.
+            return _e("M9", lang, graded)
         separator = "، " if lang == "ar" else ", "
         return _q(
             lang,
@@ -268,6 +271,8 @@ def run(conn: Conn, query: str, history: list[str], debug: bool = False) -> Advi
                 TEXT["currency"][lang].format(currencies=", ".join(sorted(exc.currencies))),
                 graded,
             )
+        except FormulaNotApplicable:
+            return _e("M11", lang, graded)
         except CalculationError:
             return _e("M12", lang, graded)
         result_unit = raw.unit

@@ -122,6 +122,24 @@ def test_2_1_6_payment_request(employee: TestClient) -> None:
     assert body["message_id"] == "PAYMENT"
 
 
+def test_2_9_3_missing_figure_is_m9_whether_absent_or_hidden(
+    employee: TestClient, management: TestClient
+) -> None:
+    absent = ask(employee, "What is the catering commission?")
+    hidden = ask(employee, "What is the executive bonus pool?")  # only in a confidential memo
+    assert (
+        absent
+        == hidden
+        == {"output": "E", "lang": "en", "message_id": "M9", "message": message("M9", "en")}
+    )
+    assert ask(management, "What is the executive bonus pool?")["output"] == "R"
+
+
+def test_2_9_1_unit_mismatch_is_m11(employee: TestClient) -> None:
+    body = ask(employee, "For Expo 2026: x = total cost - booth size")
+    assert body["message_id"] in {"M11", "M12"} or body["output"] == "Q"
+
+
 def test_2_7_8_division_by_zero_is_m12(employee: TestClient) -> None:
     body = ask(
         employee,

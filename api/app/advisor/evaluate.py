@@ -42,6 +42,10 @@ class CalculationError(Exception):
     """The calculation is impossible with these values (shown as M12)."""
 
 
+class FormulaNotApplicable(Exception):
+    """The formula adds or subtracts things of different kinds, e.g. SAR and booths (M11)."""
+
+
 class MixedCurrencies(Exception):
     """Adding or comparing different currencies without a rate (shown as Output Q)."""
 
@@ -92,7 +96,7 @@ def _eval(node: Node, inputs: dict[str, Quantity]) -> Quantity:
                     currencies = _currencies(a.unit) | _currencies(b.unit)
                     if len(currencies) > 1:
                         raise MixedCurrencies(currencies)
-                    raise CalculationError(
+                    raise FormulaNotApplicable(
                         f"cannot {'add' if op == '+' else 'subtract'} {a.unit} and {b.unit}"
                     )
                 unit = a.unit if a.unit is not None else b.unit
