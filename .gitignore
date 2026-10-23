@@ -10,3 +10,4 @@ web/out/
 storage/
 *.pyc
 .DS_Store
+.vercel
