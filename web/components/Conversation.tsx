@@ -19,6 +19,8 @@ interface Props<R> {
   busy: boolean;
   placeholder: string;
   busyLabel: string;
+  maxChars: number;
+  tooLongMessage: string;
   examples: string[];
   outputLabel: (response: R) => string;
   render: (response: R) => React.ReactNode;
@@ -30,6 +32,8 @@ export function Conversation<R extends { debug?: Record<string, unknown> }>({
   busy,
   placeholder,
   busyLabel,
+  maxChars,
+  tooLongMessage,
   examples,
   outputLabel,
   render,
@@ -85,7 +89,14 @@ export function Conversation<R extends { debug?: Record<string, unknown> }>({
       <div ref={end} />
 
       <div className="sticky bottom-0 -mx-1 bg-gradient-to-t from-paper via-paper to-transparent px-1 pt-6 pb-4">
-        <QueryBox placeholder={placeholder} busy={busy} busyLabel={busyLabel} onSubmit={onAsk} />
+        <QueryBox
+          placeholder={placeholder}
+          busy={busy}
+          busyLabel={busyLabel}
+          maxChars={maxChars}
+          tooLongMessage={tooLongMessage}
+          onSubmit={onAsk}
+        />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ export type Lang = "en" | "ar";
 export type Role = "management" | "employee" | "admin";
 
 export interface Me {
+  max_query_chars: number;
   email: string;
   name: string;
   role: Role;

@@ -8,12 +8,15 @@ interface Props {
   placeholder: string;
   busy: boolean;
   busyLabel: string;
+  maxChars: number;
+  tooLongMessage: string;
   onSubmit: (text: string) => void;
 }
 
 /** Enter sends, Shift+Enter adds a line (SRS 1.11.10). The text box takes the direction
- *  of the first strong character typed, independent of the interface language (1.11.11). */
-export function QueryBox({ placeholder, busy, busyLabel, onSubmit }: Props) {
+ *  of the first strong character typed, independent of the interface language (1.11.11).
+ *  A query over the limit is not sent: M5 is shown and the text is kept (1.11.6, 1.11.7). */
+export function QueryBox({ placeholder, busy, busyLabel, maxChars, tooLongMessage, onSubmit }: Props) {
   const { t } = useI18n();
   const [text, setText] = useState("");
   const [elapsed, setElapsed] = useState(0);
@@ -36,9 +39,11 @@ export function QueryBox({ placeholder, busy, busyLabel, onSubmit }: Props) {
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [text]);
 
+  const tooLong = text.trim().length > maxChars;
+
   function submit() {
     const query = text.trim();
-    if (!query || busy) return;
+    if (!query || busy || tooLong) return;
     onSubmit(query);
     setText("");
   }
@@ -62,7 +67,9 @@ export function QueryBox({ placeholder, busy, busyLabel, onSubmit }: Props) {
       />
       <div className="flex items-center justify-between gap-3 px-3 pb-2.5">
         <span className="text-xs text-muted" aria-live="polite">
-          {busy ? (
+          {tooLong ? (
+            <span className="text-ochre">{tooLongMessage}</span>
+          ) : busy ? (
             <span className="inline-flex items-center gap-2 text-accent">
               <span className="size-1.5 animate-pulse rounded-full bg-accent" />
               {busyLabel}
@@ -76,7 +83,7 @@ export function QueryBox({ placeholder, busy, busyLabel, onSubmit }: Props) {
         </span>
         <button
           onClick={submit}
-          disabled={busy || !text.trim()}
+          disabled={busy || !text.trim() || tooLong}
           className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-ink disabled:bg-line-strong"
         >
           {t("send")}

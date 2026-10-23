@@ -50,16 +50,20 @@ export default function Workspace() {
   const [me, setMe] = useState<Me | null>(null);
   const [tab, setTab] = useState<Tab>("assistant");
   const [search, setSearch] = useState("");
+  const [messages, setMessages] = useState<Record<string, { en: string; ar: string }> | null>(null);
   const assistant = useConversation<AssistantResponse>("/api/assistant/query", false);
   const advisor = useConversation<AdvisorResponse>("/api/advisor/query", true);
 
   useEffect(() => {
     api.me().then(setMe, () => router.replace("/login"));
+    api.messages().then(setMessages, () => setMessages(null));
   }, [router]);
 
   if (!me) return null;
-  const canAssist = me.capabilities.includes("search_assistant");
-  const canAdvise = me.capabilities.includes("operational_advisor");
+  // SRS 0.8.1 and 0.8.2; the API enforces the same matrix on every request.
+  const canAssist = me.capabilities.includes("0.8.1");
+  const canAdvise = me.capabilities.includes("0.8.2");
+  const tooLong = (messages?.M5?.[lang] ?? "").replace("{max}", String(me.max_query_chars));
 
   async function signOut() {
     await api.logout();
@@ -140,6 +144,8 @@ export default function Workspace() {
             busy={assistant.busy}
             onAsk={assistant.ask}
             placeholder={t("askPlaceholder")}
+            maxChars={me.max_query_chars}
+            tooLongMessage={tooLong}
             busyLabel={t("working")}
             examples={EXAMPLES.assistant.map((e) => e[lang])}
             outputLabel={(r) => t(`output_${r.output}` as Key)}
@@ -153,6 +159,8 @@ export default function Workspace() {
             busy={advisor.busy}
             onAsk={advisor.ask}
             placeholder={t("advisorPlaceholder")}
+            maxChars={me.max_query_chars}
+            tooLongMessage={tooLong}
             busyLabel={t("calculating")}
             examples={EXAMPLES.advisor.map((e) => e[lang])}
             outputLabel={(r) => t(`output_${r.output}` as Key)}
