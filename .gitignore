@@ -11,3 +11,6 @@ storage/
 *.pyc
 .DS_Store
 .vercel
+web/AGENTS.md
+web/CLAUDE.md
+eval/results/
