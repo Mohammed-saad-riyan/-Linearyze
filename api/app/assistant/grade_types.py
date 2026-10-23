@@ -56,6 +56,7 @@ class GradeResult(BaseModel):
     filters: Filters
     depends_on: DependentLookup | None = None
     topic: str | None = Field(None, description="what the query is about, without the filters")
+    topic_en: str | None = Field(None, description="the topic in English")
     is_payment_request: bool = False
     query_en: str
     query_ar: str

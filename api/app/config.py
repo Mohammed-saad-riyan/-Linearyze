@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     # thinking off; writing the Output B answer is not, so it gets the stronger one.
     llm_fast_model: str = "claude-sonnet-5-5"
     llm_writer_model: str = "claude-opus-5-5"
-    embed_model: str = "embed-v4.0"
+    # embed-v4.0 stalled on about one call in eight (10 s+); v3.0 answered every call in
+    # under 0.6 s. Same 1024 dimensions.
+    embed_model: str = "embed-multilingual-v3.0"
     rerank_model: str = "rerank-v3.5"
 
     storage_dir: Path = REPO_ROOT / "seed" / "corpus"  # read by the ingester only
@@ -41,7 +43,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-EMBEDDING_DIM = 1024  # embed-v4.0 at output_dimension=1024; the offline hasher uses the same width
+EMBEDDING_DIM = 1024  # embed-multilingual-v3.0; the offline hasher uses the same width
 
 # Retrieval
 FTS_CANDIDATES = 50
@@ -65,9 +67,10 @@ GRADE_GAP = 0.15
 
 # M1 (SRS 1.5.4): every M1 response is held until this many seconds after the request
 # started, so "does not exist", "no access", "below threshold" and "not indexed" take the
-# same time. Set above the slowest path that can end in M1 (grade + retrieve + rerank),
-# measured at 2.5 to 4.5 s with warm schemas; see docs/EVAL_REPORT.md.
-M1_LATENCY_FLOOR_S = 6.0
+# same time. Set above the slowest path that can end in M1 (grade + retrieve + rerank):
+# usually 3 to 6 s live, but a 9.3 s grade was seen, and a path that overruns the floor
+# would reveal its cause by timing. Trade-off: every M1 waits this long.
+M1_LATENCY_FLOOR_S = 10.0
 M1_LATENCY_FLOOR_OFFLINE_S = 0.6
 
 MAX_QUERY_CHARS = 2000  # beyond this the request gets M5

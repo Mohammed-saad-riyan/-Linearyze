@@ -37,9 +37,10 @@ class Plan:
     version: int | None = None
     event_id: str | None = None
     topic: str = ""
-    # The query in the other language, from the grader. Passages are reranked against each
-    # and keep their best score, so an Arabic question finds an English contract (1.4.6).
-    alt_queries: list[str] = field(default_factory=list)
+    # What the reranker scores passages against: the topic in English. A short topic scores
+    # far higher than the full question (0.59 vs 0.23 on the Sadu payment terms), and every
+    # passage is reranked with its bilingual title, so it also reaches Arabic documents.
+    rerank_query: str = ""
     dependency_document: str | None = None
     impossible: bool = False  # a named thing does not exist for this user: the answer is M1
     notes: list[str] = field(default_factory=list)
@@ -130,7 +131,7 @@ def build_plan(conn: Conn, graded: GradeResult) -> Plan:
         date_from=f.date_from,
         date_to=f.date_to,
         topic=graded.topic or graded.query_en,
-        alt_queries=[q for q in (graded.query_en, graded.query_ar) if q],
+        rerank_query=graded.topic_en or graded.topic or graded.query_en,
     )
     plan.sender_org = _org_filter(conn, plan, f.sender, "sender")
     plan.recipient_org = _org_filter(conn, plan, f.recipient, "recipient")

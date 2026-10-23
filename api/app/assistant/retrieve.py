@@ -127,9 +127,10 @@ def search_passages(
         passage_context(r["title"], r["title_alt"], r["heading"], r["text_original"])
         for r in ordered
     ]
-    # One rerank call with both renderings of the question: rerank-v3.5 is multilingual,
-    # and one call per search keeps us inside the provider's rate limit.
-    scores = rerank.rerank(" / ".join(dict.fromkeys([query, *plan.alt_queries])), texts)
+    # The plan's English topic when the query is the plan's own topic; callers that search
+    # for something else (an advisor term) pass their own query.
+    rerank_query = plan.rerank_query if plan.rerank_query and query == plan.topic else query
+    scores = rerank.rerank(rerank_query, texts)
     cutoff = rerank.threshold()
     hits = [
         PassageHit(

@@ -1,4 +1,4 @@
-"""Text embeddings. Cohere embed-v4.0 (multilingual) when a key is set, otherwise a
+"""Text embeddings. Cohere embed-multilingual-v3.0 when a key is set, otherwise a
 deterministic feature hasher so tests and CI run without network access.
 
 The hasher has no cross-lingual ability: an English query will not find an Arabic-only
@@ -36,7 +36,6 @@ def _live(texts: list[str], input_type: str) -> list[np.ndarray]:
                 texts=texts[start : start + _BATCH],
                 input_type=input_type,
                 embedding_types=["float"],
-                output_dimension=EMBEDDING_DIM,
                 request_options={"max_retries": 3},
             )
         except (cohere.errors.TooManyRequestsError, httpx.TimeoutException) as exc:
