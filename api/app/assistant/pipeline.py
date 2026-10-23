@@ -25,7 +25,7 @@ from app.assistant.plan import Plan, build_plan
 from app.assistant.retrieve import DocumentHit, PassageHit, find_documents, search_passages
 from app.db.session import Conn
 from app.embeddings import embed_query
-from app.text.arabic import detect_language
+from app.text.arabic import detect_language, normalize
 from app.text.terms import or_tsquery
 
 CLARIFY_QUESTION: dict[Lang, str] = {
@@ -306,6 +306,25 @@ def run(conn: Conn, query: str, today: dt.date, debug: bool = False) -> Outcome:
         return message_outcome(selection.message_id)
 
     extra: dict[str, Any] = {}
+    if selection.output == "D" and all(d.via == "title" for d in documents):
+        same_title = _same_title_options(conn, [d.document_id for d in documents], lang)
+        if same_title:
+            # 1.6.13: the name resolves to several documents, so ask which one.
+            response = AssistantResponse(
+                output="C",
+                lang=lang,
+                question=CLARIFY_QUESTION[lang],
+                options=[*same_title[:MAX_OPTIONS], CLARIFY_OTHER[lang]],
+            )
+            return Outcome(
+                response.model_dump_json(exclude_none=True).encode(),
+                "C",
+                None,
+                graded.grade,
+                excluded,
+                timings,
+            )
+
     if selection.output in ("A", "D"):
         dates = {
             r["id"]: r["document_date"]
@@ -338,6 +357,32 @@ def run(conn: Conn, query: str, today: dt.date, debug: bool = False) -> Outcome:
         excluded,
         timings,
     )
+
+
+def _same_title_options(conn: Conn, ids: list[str], lang: Lang) -> list[str]:
+    """If every document shares one title, an option per document naming what tells them
+    apart: the other party, else the date. Empty if the titles differ."""
+    name = "name_ar" if lang == "ar" else "name_en"
+    rows = conn.execute(
+        f"""
+        SELECT d.id, d.title, d.document_date,
+               coalesce(c.{name}, r.{name}) AS party
+        FROM documents d
+        LEFT JOIN organizations c ON c.id = d.client_org_id
+        LEFT JOIN organizations r ON r.id = d.recipient_org_id AND r.id <> 'LNZ'
+        WHERE d.id = ANY(%s) ORDER BY d.document_date, d.id
+        """,
+        (ids,),
+    ).fetchall()
+    if len({normalize(r["title"]) for r in rows}) != 1:
+        return []
+    joiner = " مع " if lang == "ar" else " with "
+    return [
+        f"{r['title']}{joiner}{r['party']}"
+        if r["party"]
+        else f"{r['title']} ({r['document_date']})"
+        for r in rows
+    ]
 
 
 def _answer(

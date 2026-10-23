@@ -84,10 +84,33 @@ def test_1_2_13_earlier_version_on_request(management: TestClient) -> None:
 
 
 def test_1_8_4_5_document_list_is_deterministic(management: TestClient) -> None:
-    runs = [ask(management, "Show me the exhibitor agreement") for _ in range(5)]
+    query = "Show me the letters from the Ministry of Exhibitions and Heritage"
+    runs = [ask(management, query) for _ in range(5)]
     orders = {tuple(d["id"] for d in r["documents"]) for r in runs}
-    assert orders == {("CTR-QAMAR-022", "CTR-SADU-014")}
+    assert len(orders) == 1
     assert all(r["output"] == "D" for r in runs)
+    assert set(next(iter(orders))) == {
+        "LTR-MEH-0210",
+        "LTR-MEH-0303",
+        "LTR-MEH-0317",
+        "LTR-MEH-0407",
+    }
+
+
+def test_1_6_13_two_documents_with_one_name_ask_which(management: TestClient) -> None:
+    body = ask(management, "Show me the exhibitor agreement")
+    assert body["output"] == "C"
+    assert body["options"][:2] == [
+        "Exhibitor Agreement with Sadu Furnishings Co.",
+        "Exhibitor Agreement with Qamar Lighting Trading Est.",
+    ]
+    picked = ask(management, body["options"][1])  # 1.6.15: the reply is graded afresh
+    assert [d["id"] for d in picked["documents"]] == ["CTR-QAMAR-022"]
+
+
+def test_1_4_2_title_typed_with_diacritics_and_tatweel(employee: TestClient) -> None:
+    body = ask(employee, "أعطني طَلَب تصريـــح المعرض")
+    assert [d["id"] for d in body["documents"]] == ["OUT-LNZ-0093"]
 
 
 def test_1_8_4_3_order_relevance_then_newest_then_id() -> None:
