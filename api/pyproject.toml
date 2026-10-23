@@ -18,6 +18,7 @@ dependencies = [
   "cohere>=5.11",
   "numpy>=2.0",
   "python-bidi>=0.6",
+  "google-genai>=1.0",
 ]
 
 [dependency-groups]

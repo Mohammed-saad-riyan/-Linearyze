@@ -16,11 +16,18 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str = ""
     cohere_api_key: str = ""
+    gemini_api_key: str = ""
     # "auto" uses Claude/Cohere when the key is present and the offline provider otherwise.
     provider: Literal["auto", "live", "offline"] = "auto"
 
-    # Grading and extraction are on the M1 latency path, so they use the faster model with
-    # thinking off; writing the Output B answer is not, so it gets the stronger one.
+    # Language model providers, tried in this order (app/llm.py); unconfigured ones are
+    # skipped. Gemini first, Cohere Command A on the same key as search as the fallback.
+    llm_providers: str = "gemini,cohere,anthropic"
+    gemini_fast_model: str = "gemini-2.5-flash"
+    gemini_writer_model: str = "gemini-2.5-flash"
+    cohere_chat_model: str = "command-a-03-2025"
+    # Grading and extraction are on the M1 latency path, so on Claude they use the faster
+    # model with thinking off; writing the Output B answer gets the stronger one.
     llm_fast_model: str = "claude-sonnet-5-5"
     llm_writer_model: str = "claude-opus-5-5"
     # embed-v4.0 stalled on about one call in eight (10 s+); v3.0 answered every call in
@@ -35,7 +42,8 @@ class Settings(BaseSettings):
     session_secure_cookie: bool = False
 
     def use_live_llm(self) -> bool:
-        return self.provider == "live" or (self.provider == "auto" and bool(self.anthropic_api_key))
+        any_key = bool(self.gemini_api_key or self.cohere_api_key or self.anthropic_api_key)
+        return self.provider == "live" or (self.provider == "auto" and any_key)
 
     def use_live_cohere(self) -> bool:
         return self.provider == "live" or (self.provider == "auto" and bool(self.cohere_api_key))

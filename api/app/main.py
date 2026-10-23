@@ -328,7 +328,7 @@ def health() -> JSONResponse:
     return JSONResponse(
         {
             "status": "ok",
-            "llm": "claude" if settings.use_live_llm() else "offline",
+            "llm": llm.provider_health() if settings.use_live_llm() else "offline",
             "search": "cohere" if settings.use_live_cohere() else "offline",
         }
     )
