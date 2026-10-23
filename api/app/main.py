@@ -4,7 +4,7 @@ from collections import defaultdict, deque
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app import llm
@@ -219,19 +219,6 @@ def advisor_query(
 # --- documents ----------------------------------------------------------------------------
 
 
-def _readable_document(user: CurrentUser, document_id: str) -> dict[str, Any]:
-    with as_user(user.id) as conn:
-        row = conn.execute(
-            "SELECT id, title, file_name, mime_type, storage_path, sha256 FROM documents"
-            " WHERE id = %s",
-            (document_id,),
-        ).fetchone()
-    if row is None:
-        # Same response whether the document is missing or hidden by policy.
-        raise HTTPException(status_code=404, detail={"message_id": "M1"})
-    return row
-
-
 @app.get("/api/documents/{document_id}/passages/{chunk_id}")
 def view_passage(
     document_id: str,
@@ -242,9 +229,7 @@ def view_passage(
         row = conn.execute(
             """
             SELECT c.id, c.text_original, c.page, c.heading, c.sheet, c.cell_range,
-                   d.title, d.file_name, d.language,
-                   (SELECT count(*) FROM chunks x WHERE x.document_id = d.id) AS passages,
-                   c.ordinal
+                   d.title, d.file_name, d.language
             FROM chunks c JOIN documents d ON d.id = c.document_id
             WHERE c.id = %s AND d.id = %s
             """,
@@ -270,13 +255,21 @@ def view_passage(
 @app.get("/api/documents/{document_id}/download")
 def download(
     document_id: str, user: Annotated[CurrentUser, Depends(require("download_document"))]
-) -> FileResponse:
-    row = _readable_document(user, document_id)
+) -> Response:
+    with as_user(user.id) as conn:
+        row = conn.execute(
+            "SELECT d.file_name, d.mime_type, f.content FROM documents d"
+            " JOIN document_files f ON f.document_id = d.id WHERE d.id = %s",
+            (document_id,),
+        ).fetchone()
+    if row is None:
+        # Same response whether the document is missing or hidden by policy.
+        raise HTTPException(status_code=404, detail={"message_id": "M1"})
     _audit(user, "document.download", "ok", resource_type="document", resource_id=document_id)
-    return FileResponse(
-        settings.storage_dir / row["storage_path"],
+    return Response(
+        bytes(row["content"]),
         media_type=row["mime_type"],
-        filename=row["file_name"],
+        headers={"Content-Disposition": f'attachment; filename="{row["file_name"]}"'},
     )
 
 

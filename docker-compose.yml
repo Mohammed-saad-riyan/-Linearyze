@@ -21,7 +21,6 @@ services:
       DATABASE_URL: postgresql://ems_app:ems_app@db:5432/ems
       OWNER_DATABASE_URL: postgresql://ems_owner:ems_owner@db:5432/ems
       STORAGE_DIR: /srv/seed/corpus
-      PERMISSION_MATRIX_PATH: /srv/seed/permission_matrix.yaml
     volumes:
       - ./seed:/srv/seed:ro
       - ./eval:/srv/eval:ro

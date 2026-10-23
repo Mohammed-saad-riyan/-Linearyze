@@ -1,0 +1,32 @@
+# SRS 0.8: who may do what. Loaded at API startup (0.8.22); endpoints declare the
+# capability they need and app/auth/permissions.py looks it up here. Changing a cell here
+# changes behaviour without a code change. tests/test_permissions.py checks every
+# cell (21 capabilities x 3 roles = 63 cases, SRS 0.8.23).
+#
+# Document-level visibility (confidential, event scope) is not here: it is enforced by
+# Postgres row-level security in api/app/db/rls.sql.
+
+roles: [management, employee, admin]
+
+capabilities:
+  search_assistant:          {management: allow, employee: allow, admin: deny}
+  operational_advisor:       {management: allow, employee: allow, admin: deny}
+  view_document:             {management: allow, employee: allow, admin: deny}
+  download_document:         {management: allow, employee: allow, admin: deny}
+  upload_document:           {management: allow, employee: allow, admin: deny}
+  edit_document_metadata:    {management: allow, employee: deny,  admin: deny}
+  delete_document:           {management: allow, employee: deny,  admin: deny}
+  view_confidential:         {management: allow, employee: deny,  admin: deny}
+  view_all_events:           {management: allow, employee: deny,  admin: deny}
+  manage_events:             {management: allow, employee: deny,  admin: deny}
+  view_conversation_history: {management: allow, employee: allow, admin: deny}
+  delete_conversation:       {management: allow, employee: allow, admin: deny}
+  view_dashboard:            {management: allow, employee: allow, admin: deny}
+  view_reports:              {management: allow, employee: deny,  admin: deny}
+  export_reports:            {management: allow, employee: deny,  admin: deny}
+  manage_tasks:              {management: allow, employee: allow, admin: deny}
+  manage_users:              {management: deny,  employee: deny,  admin: allow}
+  assign_roles:              {management: deny,  employee: deny,  admin: allow}
+  assign_event_scope:        {management: deny,  employee: deny,  admin: allow}
+  deactivate_users:          {management: deny,  employee: deny,  admin: allow}
+  view_audit_log:            {management: allow, employee: deny,  admin: allow}

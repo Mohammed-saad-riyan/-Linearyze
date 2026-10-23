@@ -194,3 +194,8 @@ def coverage(query_terms: list[str], passage_terms: set[str]) -> float:
     if not distinct:
         return 0.0
     return len(distinct & passage_terms) / len(distinct)
+
+
+def passage_context(title: str, title_alt: str | None, heading: str | None, text: str) -> str:
+    """What the embedder and the reranker see for a passage. Must match at both ends."""
+    return "\n".join(part for part in (title, title_alt, heading, text) if part)

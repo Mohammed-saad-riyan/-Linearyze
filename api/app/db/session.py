@@ -27,7 +27,9 @@ def pool() -> ConnectionPool[Conn]:
             connection_class=Conn,
             min_size=1,
             max_size=10,
-            kwargs={"row_factory": dict_row},
+            # prepare_threshold=None: no server-side prepared statements, which a
+            # transaction-mode pooler (Neon, PgBouncer) cannot route between backends.
+            kwargs={"row_factory": dict_row, "prepare_threshold": None},
             configure=_configure,
             open=True,
         )

@@ -98,6 +98,13 @@ CREATE TABLE chunks (
     sheet           text,
     cell_range      text
 );
+-- The uploaded file itself. Kept in Postgres so downloads go through the same row-level
+-- security as search; a separate table so listing documents never reads the bytes.
+CREATE TABLE document_files (
+    document_id text PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+    content     bytea NOT NULL
+);
+
 CREATE INDEX chunks_tsv ON chunks USING gin (tsv);
 CREATE INDEX chunks_embedding ON chunks USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX chunks_document ON chunks (document_id, ordinal);

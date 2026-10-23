@@ -31,6 +31,10 @@ ALTER TABLE chunks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY read_chunks ON chunks FOR SELECT
     USING (EXISTS (SELECT 1 FROM documents d WHERE d.id = chunks.document_id));
 
+ALTER TABLE document_files ENABLE ROW LEVEL SECURITY;
+CREATE POLICY read_document_files ON document_files FOR SELECT
+    USING (EXISTS (SELECT 1 FROM documents d WHERE d.id = document_files.document_id));
+
 -- Audit only (SRS 1.12.2): how many documents matched the query terms but were hidden by
 -- policy. Runs as the owner so it can see everything, and returns a bare integer so no
 -- title, id or snippet can escape through it.
@@ -49,8 +53,8 @@ $$;
 REVOKE ALL ON FUNCTION excluded_match_count(text) FROM PUBLIC;
 
 GRANT USAGE ON SCHEMA public TO ems_app;
-GRANT SELECT ON users, user_scopes, events, organizations, org_aliases, documents, chunks
-    TO ems_app;
+GRANT SELECT ON users, user_scopes, events, organizations, org_aliases, documents, chunks,
+    document_files TO ems_app;
 GRANT SELECT, INSERT ON sessions TO ems_app;
 GRANT UPDATE (revoked_at) ON sessions TO ems_app;
 GRANT INSERT ON audit_log TO ems_app;

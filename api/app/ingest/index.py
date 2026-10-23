@@ -19,7 +19,7 @@ from app.db.session import Conn
 from app.embeddings import embed_documents
 from app.ingest.parsers import parse
 from app.text.arabic import normalize
-from app.text.terms import search_text
+from app.text.terms import passage_context, search_text
 
 SEED = REPO_ROOT / "seed"
 MIME_OVERRIDES = {
@@ -69,11 +69,6 @@ def seed_people(conn: Conn) -> None:
                 "INSERT INTO user_scopes (user_id, event_id) VALUES (%s, %s)",
                 (row["id"], event_id),
             )
-
-
-def passage_context(title: str, title_alt: str | None, heading: str | None, text: str) -> str:
-    """What the embedder and the reranker see for a passage. Must match at both ends."""
-    return "\n".join(part for part in (title, title_alt, heading, text) if part)
 
 
 def _alt_title(doc: dict[str, Any]) -> str | None:
@@ -129,6 +124,9 @@ def ingest_document(conn: Conn, doc: dict[str, Any], uploader: Any) -> int:
             "storage_path": doc["file"],
             "mime_type": MIME_OVERRIDES.get(path.suffix) or mimetypes.guess_type(path.name)[0],
         },
+    )
+    conn.execute(
+        "INSERT INTO document_files (document_id, content) VALUES (%s, %s)", (doc["id"], raw)
     )
     if doc.get("indexed", True) is False:
         return 0  # uploaded, waiting for the indexer: indexed_at stays NULL, no chunks
