@@ -53,7 +53,7 @@ def is_payment_request(query: str) -> bool:
 def apply_rules(result: GradeResult, query: str) -> FinalGrade:
     if result.is_payment_request or is_payment_request(query):
         return FinalGrade(
-            grade="OT", reason="payment request (0.10.7)", result=result, payment_request=True
+            grade="OT", reason="payment request (1.6.11)", result=result, payment_request=True
         )
     if len(result.requests) > 1:
         return FinalGrade(grade="AM", reason="more than one request (1.6.14)", result=result)

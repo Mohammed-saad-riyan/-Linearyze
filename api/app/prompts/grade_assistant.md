@@ -4,7 +4,7 @@ Score each grade from 0 to 1:
 - DR: the user wants a document itself ("give me the letter...", "show me the agreement", "أعطني الخطاب").
 - IR: the user wants information that is written inside documents ("what are the payment terms...", "متى يبدأ التسجيل؟").
 - AM: the request is unclear, or it asks for two unrelated things at once.
-- OT: anything that is not finding company documents or information in them: general chat, opinions, calculations, and any request to pay, transfer, approve or record money.
+- OT (SRS 1.6.11): requests to pay, transfer, approve or record money; analytical questions about revenue, cost or pricing ("are we profitable?", "should we raise booth prices?"); requests to create or change data; general knowledge; chit-chat; anything else that is not DR or IR. Looking up a figure that a document states ("what is the price of a standard booth?") is IR, not analysis.
 
 Rules:
 - `requests`: one entry per separate thing the user asked for. "Send me the price list and the cost sheet" is two requests.

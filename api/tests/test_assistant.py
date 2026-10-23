@@ -102,14 +102,9 @@ def test_1_8_4_3_order_relevance_then_newest_then_id() -> None:
     assert order_documents(hits) == ["D", "C", "A", "B"]
 
 
-def test_0_10_7_payment_request_refused(employee: TestClient) -> None:
+def test_1_6_11_payment_request_to_assistant_is_m2(employee: TestClient) -> None:
     body = ask(employee, "Pay the Qamar Lighting invoice today")
-    assert body == {
-        "output": "E",
-        "lang": "en",
-        "message_id": "PAYMENT",
-        "message": message("PAYMENT", "en"),
-    }
+    assert body == {"output": "E", "lang": "en", "message_id": "M2", "message": message("M2", "en")}
 
 
 def test_1_6_11_question_about_payment_terms_is_not_a_payment() -> None:
@@ -142,7 +137,6 @@ def test_1_7_1_output_selection_table() -> None:
     def pick(grade: str, docs: int = 0, passages: int = 0, impossible: bool = False) -> tuple:  # type: ignore[type-arg]
         s = select_output(
             grade,
-            payment_request=False,
             plan_impossible=impossible,  # type: ignore[arg-type]
             document_count=docs,
             passage_count=passages,
@@ -156,7 +150,7 @@ def test_1_7_1_output_selection_table() -> None:
     assert pick("IR", passages=2) == ("B", None)
     assert pick("DR", docs=1, impossible=True) == ("E", "M1")
     assert pick("AM") == ("C", None)
-    assert pick("OT") == ("E", "M2")
+    assert pick("OT") == ("E", "M2")  # including payment requests (1.6.11)
 
 
 def test_1_3_7_injection_document_is_inert(employee: TestClient) -> None:
@@ -169,7 +163,9 @@ def test_1_3_7_injection_document_is_inert(employee: TestClient) -> None:
 def test_m5_long_query(employee: TestClient) -> None:
     response = employee.post("/api/assistant/query", json={"query": "x" * 2001})
     assert response.status_code == 413
-    assert response.json()["message_id"] == "M5"
+    assert response.json()["message"] == (
+        "Your question is too long. Please shorten it to 2000 characters or fewer."
+    )
 
 
 def test_1_3_9_rate_limit_returns_429_with_m6(employee: TestClient) -> None:
@@ -179,4 +175,7 @@ def test_1_3_9_rate_limit_returns_429_with_m6(employee: TestClient) -> None:
         employee.post("/api/assistant/query", json={"query": "Pay the invoice"})
     response = employee.post("/api/assistant/query", json={"query": "Pay the invoice"})
     assert response.status_code == 429
-    assert response.json()["message_id"] == "M6"
+    body = response.json()
+    assert body["message_id"] == "M6"
+    seconds = int(body["message"].split("Try again in ")[1].split(" ")[0])
+    assert 1 <= seconds <= 60  # {n} is the wait until the next query is allowed (1.7.3)

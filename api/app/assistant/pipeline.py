@@ -109,14 +109,14 @@ class Outcome:
     timings_ms: dict[str, int] = field(default_factory=dict)
 
 
-def render_message(message_id: MessageId, lang: Lang) -> bytes:
+def render_message(message_id: MessageId, lang: Lang, **placeholders: int) -> bytes:
     """Output E. Built from constants only; nothing about the request can reach it."""
     return json.dumps(
         {
             "output": "E",
             "lang": lang,
             "message_id": message_id,
-            "message": message(message_id, lang),
+            "message": message(message_id, lang, **placeholders),
         },
         ensure_ascii=False,
         separators=(",", ":"),
@@ -250,7 +250,6 @@ def run(conn: Conn, query: str, today: dt.date, debug: bool = False) -> Outcome:
     if graded.grade == "OT":
         selection = select_output(
             "OT",
-            payment_request=graded.payment_request,
             plan_impossible=False,
             document_count=0,
             passage_count=0,
@@ -298,7 +297,6 @@ def run(conn: Conn, query: str, today: dt.date, debug: bool = False) -> Outcome:
 
     selection = select_output(
         graded.grade,
-        payment_request=False,
         plan_impossible=plan.impossible,
         document_count=len(documents),
         passage_count=len(passages),

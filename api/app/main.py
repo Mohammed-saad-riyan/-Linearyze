@@ -1,5 +1,6 @@
 import datetime as dt
 import logging
+import math
 import time
 from collections import defaultdict, deque
 from typing import Annotated, Any
@@ -40,9 +41,11 @@ def _lang(text: str) -> Lang:
     return "ar" if detect_language(text) == "ar" else "en"
 
 
-def _message_response(message_id: MessageId, lang: Lang, status: int) -> Response:
+def _message_response(
+    message_id: MessageId, lang: Lang, status: int, **placeholders: int
+) -> Response:
     return Response(
-        assistant.render_message(message_id, lang),
+        assistant.render_message(message_id, lang, **placeholders),
         status_code=status,
         media_type="application/json",
     )
@@ -85,6 +88,7 @@ def logout(request: Request, response: Response) -> dict[str, str]:
 def me(user: Annotated[CurrentUser, Depends(current_user)]) -> dict[str, Any]:
     allowed = [c for c in matrix().capabilities if matrix().allows(user.role, c)]
     return {
+        "max_query_chars": MAX_QUERY_CHARS,  # the browser refuses longer queries (1.11.6)
         "email": user.email,
         "name": user.name,
         "role": user.role,
@@ -98,17 +102,18 @@ def me(user: Annotated[CurrentUser, Depends(current_user)]) -> dict[str, Any]:
 _recent: dict[str, deque[float]] = defaultdict(deque)
 
 
-def _rate_limited(user: CurrentUser) -> bool:
-    """Sliding one-minute window per user, in process. A multi-instance deployment would
-    keep this in Postgres or Redis; one API container is enough for the PoC."""
+def _seconds_until_allowed(user: CurrentUser) -> int:
+    """0 if the user may query now, else whole seconds until the oldest request in the
+    one-minute window expires ({n} in M6, SRS 1.7.3). In process: one API instance is
+    enough for the PoC; several would keep this window in Postgres."""
     now = time.monotonic()
     window = _recent[str(user.id)]
     while window and now - window[0] > 60:
         window.popleft()
     if len(window) >= RATE_LIMIT_PER_MINUTE:
-        return True
+        return max(1, math.ceil(60 - (now - window[0])))
     window.append(now)
-    return False
+    return 0
 
 
 # --- assistant ----------------------------------------------------------------------------
@@ -138,14 +143,14 @@ def _hold_until(deadline: float) -> None:
 
 @app.post("/api/assistant/query")
 def assistant_query(
-    body: QueryRequest, user: Annotated[CurrentUser, Depends(require("search_assistant"))]
+    body: QueryRequest, user: Annotated[CurrentUser, Depends(require("0.8.1"))]
 ) -> Response:
     started = time.perf_counter()
     lang = _lang(body.query)
     if len(body.query) > MAX_QUERY_CHARS:
-        return _message_response("M5", lang, 413)
-    if _rate_limited(user):
-        return _message_response("M6", lang, 429)
+        return _message_response("M5", lang, 413, max=MAX_QUERY_CHARS)
+    if wait := _seconds_until_allowed(user):
+        return _message_response("M6", lang, 429, n=wait)
     try:
         with as_user(user.id) as conn:
             outcome = assistant.run(conn, body.query, DEMO_TODAY, debug=body.debug)
@@ -190,14 +195,14 @@ class AdvisorRequest(BaseModel):
 
 @app.post("/api/advisor/query")
 def advisor_query(
-    body: AdvisorRequest, user: Annotated[CurrentUser, Depends(require("operational_advisor"))]
+    body: AdvisorRequest, user: Annotated[CurrentUser, Depends(require("0.8.2"))]
 ) -> Response:
     started = time.perf_counter()
     lang = _lang(body.query)
     if len(body.query) > MAX_QUERY_CHARS:
-        return _message_response("M5", lang, 413)
-    if _rate_limited(user):
-        return _message_response("M6", lang, 429)
+        return _message_response("M5", lang, 413, max=MAX_QUERY_CHARS)
+    if wait := _seconds_until_allowed(user):
+        return _message_response("M6", lang, 429, n=wait)
     try:
         with as_user(user.id) as conn:
             outcome = advisor.run(
@@ -230,7 +235,7 @@ def advisor_query(
 def view_passage(
     document_id: str,
     chunk_id: int,
-    user: Annotated[CurrentUser, Depends(require("view_document"))],
+    user: Annotated[CurrentUser, Depends(require("0.8.1"))],
 ) -> dict[str, Any]:
     with as_user(user.id) as conn:
         row = conn.execute(
@@ -260,9 +265,7 @@ def view_passage(
 
 
 @app.get("/api/documents/{document_id}/download")
-def download(
-    document_id: str, user: Annotated[CurrentUser, Depends(require("download_document"))]
-) -> Response:
+def download(document_id: str, user: Annotated[CurrentUser, Depends(require("0.8.1"))]) -> Response:
     with as_user(user.id) as conn:
         row = conn.execute(
             "SELECT d.file_name, d.mime_type, f.content FROM documents d"
@@ -285,7 +288,7 @@ def download(
 
 @app.get("/api/admin/users")
 def admin_users(
-    user: Annotated[CurrentUser, Depends(require("manage_users"))],
+    user: Annotated[CurrentUser, Depends(require("0.8.17"))],
 ) -> list[dict[str, Any]]:
     with as_user(user.id) as conn:
         rows = conn.execute(

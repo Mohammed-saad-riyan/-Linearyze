@@ -26,13 +26,14 @@ class Selection:
 def select_output(
     grade: Grade,
     *,
-    payment_request: bool,
     plan_impossible: bool,
     document_count: int,
     passage_count: int,
 ) -> Selection:
     if grade == "OT":
-        return Selection("E", "PAYMENT" if payment_request else "M2")
+        # 1.6.11: payment requests are OT like any other out-of-scope query, and get M2.
+        # The 0.10.7 payment message belongs to the Advisor (2.1.6).
+        return Selection("E", "M2")
     if grade == "AM":
         return Selection("C")
     if plan_impossible:
