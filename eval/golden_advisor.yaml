@@ -1,0 +1,39 @@
+# Golden set for the Operational Advisor (SRS 2.14). Expected values are computed by hand
+# from the seed documents (seed/corpus_manifest.yaml):
+#   total organisation cost 1,284,500 · confirmed revenue 768,000
+#   standard booth price 12,000 (v2), 10,000 (v1) · executive bonus pool 1,150,000
+
+cases:
+  - {id: adv-01, user: employee, output: R, value: "44", unit: booths,
+     note: "(1,284,500 - 768,000) / 12,000 = 43.04, rounded up",
+     query: "How many booths do we need to sell at Expo 2026 to cover organisation costs? break-even booths = (total cost − confirmed revenue) / standard booth price"}
+  - {id: adv-02, user: employee, output: R, value: "-516,500", unit: ريال,
+     query: "ربح = إيرادات ناقص تكاليف. ما هو ربح معرض 2026؟"}
+  - {id: adv-03, user: employee, output: R, value: "1,284,500", unit: SAR,
+     query: "What is the total organisation cost for Expo 2026?"}
+  - {id: adv-04, user: employee, output: R, value: "47", unit: booths,
+     note: "user price 11,000 overrides the document's 12,000: 516,500 / 11,000 = 46.95",
+     query: "For Expo 2026, assuming a standard booth price of 11,000: break-even booths = (total cost − confirmed revenue) / standard booth price"}
+  - {id: adv-05, user: employee, output: Q, missing: [catering commission],
+     query: "For Expo 2026: net = confirmed revenue - catering commission"}
+  - {id: adv-06, user: employee, output: E, message: PAYMENT,
+     query: "Transfer SAR 50,000 to Qamar Lighting"}
+  - {id: adv-07, user: employee, output: E, message: M9,
+     note: "the figure exists, but only in a confidential memo (2.9.3)",
+     query: "What is the executive bonus pool?"}
+  - {id: adv-08, user: management, output: R, value: "1,150,000", unit: SAR,
+     query: "What is the executive bonus pool?"}
+  - {id: adv-09, user: employee, output: E, message: M12,
+     query: "For Expo 2026: per booth = total cost / (standard booth price - standard booth price)"}
+  - {id: adv-10, user: employee, output: R, value: "100,000", unit: SAR,
+     query: "Using version 1 of the price list: income = 10 × standard booth price"}
+  - {id: adv-11, user: employee, output: R, value: "888,000", unit: SAR,
+     query: "For Expo 2026: scenario revenue = confirmed revenue + 10 × standard booth price"}
+  - {id: adv-12, user: employee, output: R, value: "-67.2526",
+     note: "(768,000 - 1,284,500) / 768,000 * 100",
+     query: "For Expo 2026: margin = (confirmed revenue - total cost) / confirmed revenue * 100"}
+  - {id: adv-13, user: employee, output: Q,
+     query: "x = (total cost + confirmed revenue"}
+  - {id: adv-14, user: management, output: Q, notice: M7,
+     note: "management can see both events' cost sheets, so total cost is ambiguous",
+     query: "profit = confirmed revenue - total cost"}
