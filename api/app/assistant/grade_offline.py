@@ -62,7 +62,9 @@ def requested_version(text: str) -> int | None:
 
 # Cues start at a word boundary: an unanchored "ل" once matched inside "طلب" and cut the
 # topic short. A bare "ل" prefix is not a cue at all; too many words begin with it.
-_SENDER_CUE = r"(?:^|\s)(?:from|by|sent by|issued by|من|الوارد من|الصادر من|المرسل من)\s+(?:the\s+)?"
+_SENDER_CUE = (
+    r"(?:^|\s)(?:from|by|sent by|issued by|من|الوارد من|الصادر من|المرسل من)\s+(?:the\s+)?"
+)
 _CLIENT_CUE = r"(?:^|\s)(?:for|with|of|signed with|with client|مع|الخاص ب|الخاصه ب)\s+|(?:^|\s)لـ"
 
 

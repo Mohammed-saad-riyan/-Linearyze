@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     provider: Literal["auto", "live", "offline"] = "auto"
 
     # Language model providers, tried in this order (app/llm.py); unconfigured ones are
-    # skipped. Gemini first, Cohere Command A on the same key as search as the fallback.
-    llm_providers: str = "gemini,cohere,anthropic"
+    # skipped. Claude is the production model; Gemini and Cohere Command A are fallbacks.
+    llm_providers: str = "anthropic,gemini,cohere"
     # Tried in order on the free tier: 3.5-flash grades in about 2 s with thinking at low;
     # its lite sibling takes over when Google reports high demand (503) or a quota (429).
     # 3.8-flash missed a 40 s deadline on this tier; 2.5-flash is closed to new keys.
