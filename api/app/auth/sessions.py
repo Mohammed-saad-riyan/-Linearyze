@@ -86,18 +86,19 @@ def resolve(token: str) -> CurrentUser | None:
 def current_user(ems_session: str | None = Cookie(default=None)) -> CurrentUser:
     user = resolve(ems_session) if ems_session else None
     if user is None:
-        raise HTTPException(status_code=401, detail={"message_id": "M9"})
+        raise HTTPException(status_code=401, detail={"error": "unauthenticated"})
     return user
 
 
 def require(capability: str):  # type: ignore[no-untyped-def]
-    """FastAPI dependency: 403 with M10 unless the permission matrix allows the capability."""
+    """FastAPI dependency: 403 unless the permission matrix allows `capability` (an SRS
+    0.8 id such as "0.8.1")."""
     if capability not in matrix().capabilities:
         raise KeyError(f"unknown capability {capability!r}")
 
     def check(user: Annotated[CurrentUser, Depends(current_user)]) -> CurrentUser:
         if not matrix().allows(user.role, capability):
-            raise HTTPException(status_code=403, detail={"message_id": "M10"})
+            raise HTTPException(status_code=403, detail={"error": "forbidden"})
         return user
 
     return check

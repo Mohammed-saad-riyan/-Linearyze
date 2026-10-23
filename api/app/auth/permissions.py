@@ -9,23 +9,38 @@ from app.config import settings
 
 Role = Literal["management", "employee", "admin"]
 ROLES: tuple[Role, ...] = ("management", "employee", "admin")
+Cell = Literal["Y", "N", "TBD"]
+
+
+class Capability(BaseModel):
+    name: str
+    management: Cell
+    employee: Cell
+    admin: Cell
 
 
 class PermissionMatrix(BaseModel):
     roles: list[Role]
-    capabilities: dict[str, dict[Role, Literal["allow", "deny"]]]
+    capabilities: dict[str, Capability]
+    poc_decisions: dict[str, dict[Role, Literal["Y", "N"]]] = {}
 
     @model_validator(mode="after")
-    def every_cell_is_filled(self) -> "PermissionMatrix":
-        # A missing cell must fail at startup, not silently default to allow or deny.
-        for capability, cells in self.capabilities.items():
-            missing = set(self.roles) - set(cells)
-            if missing:
-                raise ValueError(f"{capability}: no decision for {sorted(missing)}")
+    def decisions_only_resolve_tbd(self) -> "PermissionMatrix":
+        # A PoC decision may settle an open (TBD) cell, never overrule one the SRS decided.
+        for capability_id, cells in self.poc_decisions.items():
+            for role in cells:
+                if getattr(self.capabilities[capability_id], role) != "TBD":
+                    raise ValueError(f"{capability_id}/{role} is not TBD in the SRS")
         return self
 
-    def allows(self, role: Role, capability: str) -> bool:
-        return self.capabilities[capability][role] == "allow"
+    def cell(self, role: Role, capability_id: str) -> Cell:
+        return getattr(self.capabilities[capability_id], role)  # type: ignore[no-any-return]
+
+    def allows(self, role: Role, capability_id: str) -> bool:
+        cell = self.cell(role, capability_id)
+        if cell == "TBD":
+            return self.poc_decisions.get(capability_id, {}).get(role) == "Y"
+        return cell == "Y"
 
 
 def load_matrix(path: Path) -> PermissionMatrix:

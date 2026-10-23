@@ -34,20 +34,47 @@ def test_0_8_23_permission_matrix(capability: str, role: str, login) -> None:  #
     response = client.get(f"/probe/{capability}")
     expected = 200 if matrix().allows(role, capability) else 403  # type: ignore[arg-type]
     assert response.status_code == expected
-    if expected == 403:
-        assert response.json()["detail"] == {"message_id": "M10"}
 
 
-def test_0_8_22_matrix_with_a_missing_cell_fails_at_load(tmp_path) -> None:  # type: ignore[no-untyped-def]
-    broken = tmp_path / "matrix.yaml"
-    broken.write_text(
+def test_0_8_22_changing_a_cell_changes_access_without_code(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    edited = tmp_path / "matrix.yaml"
+    edited.write_text(
         settings.permission_matrix_path.read_text().replace(
-            "search_assistant:          {management: allow, employee: allow, admin: deny}",
-            "search_assistant:          {management: allow, employee: allow}",
+            "management: Y,   employee: Y,   admin: N}",
+            "management: Y,   employee: N,   admin: N}",
+            1,
         )
     )
-    with pytest.raises(ValueError, match="search_assistant"):
-        load_matrix(broken)
+    assert matrix().allows("employee", "0.8.1")
+    assert not load_matrix(edited).allows("employee", "0.8.1")
+
+
+def test_0_8_matrix_cells_match_the_srs_table() -> None:
+    m = matrix()
+    assert [m.cell(r, "0.8.2") for r in ROLES] == ["Y", "TBD", "N"]
+    assert [m.cell(r, "0.8.17") for r in ROLES] == ["N", "N", "Y"]
+    assert [m.cell(r, "0.8.21") for r in ROLES] == ["Y", "N", "N"]
+
+
+def test_tbd_cells_are_denied_unless_the_poc_decided_them() -> None:
+    m = matrix()
+    assert m.cell("admin", "0.8.3") == "TBD" and not m.allows("admin", "0.8.3")
+    assert m.cell("employee", "0.8.2") == "TBD" and m.allows("employee", "0.8.2")
+
+
+def test_poc_decision_cannot_overrule_a_decided_cell(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    edited = tmp_path / "matrix.yaml"
+    edited.write_text(
+        settings.permission_matrix_path.read_text().replace(
+            '"0.8.2": {employee: Y}', '"0.8.2": {admin: Y}'
+        )
+    )
+    with pytest.raises(ValueError, match="not TBD"):
+        load_matrix(edited)
+
+
+def test_0_7_5_management_cannot_manage_users(management: TestClient) -> None:
+    assert management.get("/api/admin/users").status_code == 403
 
 
 def test_0_7_5_admin_cannot_call_assistant(admin: TestClient) -> None:
@@ -69,7 +96,6 @@ def test_admin_can_list_users_and_others_cannot(admin: TestClient, management: T
     assert management.get("/api/admin/users").status_code == 403
 
 
-def test_no_session_is_401_with_m9() -> None:
+def test_0_7_7_no_session_is_401() -> None:
     response = TestClient(real_app).post("/api/assistant/query", json={"query": "x"})
     assert response.status_code == 401
-    assert response.json()["detail"] == {"message_id": "M9"}

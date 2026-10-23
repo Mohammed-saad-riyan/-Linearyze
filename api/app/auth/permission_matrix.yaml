@@ -1,32 +1,40 @@
-# SRS 0.8: who may do what. Loaded at API startup (0.8.22); endpoints declare the
-# capability they need and app/auth/permissions.py looks it up here. Changing a cell here
-# changes behaviour without a code change. tests/test_permissions.py checks every
-# cell (21 capabilities x 3 roles = 63 cases, SRS 0.8.23).
+# SRS 0.8 permission matrix, transcribed cell for cell (Y = allowed, N = not allowed).
+# Loaded at API startup (0.8.22): endpoints name the capability they need and
+# app/auth/permissions.py looks the cell up here, so changing a cell changes behaviour with
+# no code change. tests/test_permissions.py checks every cell: 21 x 3 = 63 (0.8.23).
 #
-# Document-level visibility (confidential, event scope) is not here: it is enforced by
-# Postgres row-level security in api/app/db/rls.sql.
+# TBD cells are left as TBD, exactly as the SRS has them. Until the client decides, a TBD
+# cell is denied, except where `poc_decisions` below records what this PoC chose and why.
+#
+# Document-level visibility (confidential, event scope) is not here: Postgres row-level
+# security enforces it, see api/app/db/rls.sql.
 
 roles: [management, employee, admin]
 
 capabilities:
-  search_assistant:          {management: allow, employee: allow, admin: deny}
-  operational_advisor:       {management: allow, employee: allow, admin: deny}
-  view_document:             {management: allow, employee: allow, admin: deny}
-  download_document:         {management: allow, employee: allow, admin: deny}
-  upload_document:           {management: allow, employee: allow, admin: deny}
-  edit_document_metadata:    {management: allow, employee: deny,  admin: deny}
-  delete_document:           {management: allow, employee: deny,  admin: deny}
-  view_confidential:         {management: allow, employee: deny,  admin: deny}
-  view_all_events:           {management: allow, employee: deny,  admin: deny}
-  manage_events:             {management: allow, employee: deny,  admin: deny}
-  view_conversation_history: {management: allow, employee: allow, admin: deny}
-  delete_conversation:       {management: allow, employee: allow, admin: deny}
-  view_dashboard:            {management: allow, employee: allow, admin: deny}
-  view_reports:              {management: allow, employee: deny,  admin: deny}
-  export_reports:            {management: allow, employee: deny,  admin: deny}
-  manage_tasks:              {management: allow, employee: allow, admin: deny}
-  manage_users:              {management: deny,  employee: deny,  admin: allow}
-  assign_roles:              {management: deny,  employee: deny,  admin: allow}
-  assign_event_scope:        {management: deny,  employee: deny,  admin: allow}
-  deactivate_users:          {management: deny,  employee: deny,  admin: allow}
-  view_audit_log:            {management: allow, employee: deny,  admin: allow}
+  "0.8.1":  {name: Search and query via smart assistant,           management: Y,   employee: Y,   admin: N}
+  "0.8.2":  {name: Use smart operational advisor,                  management: Y,   employee: TBD, admin: N}
+  "0.8.3":  {name: Assign tasks to employees,                      management: Y,   employee: N,   admin: TBD}
+  "0.8.4":  {name: "Receive tasks, update status, deliver results", management: TBD, employee: Y,   admin: TBD}
+  "0.8.5":  {name: View performance dashboard per employee,        management: Y,   employee: N,   admin: TBD}
+  "0.8.6":  {name: View full dashboard and indicators,             management: Y,   employee: TBD, admin: TBD}
+  "0.8.7":  {name: Request periodic reports and set schedule,      management: Y,   employee: N,   admin: TBD}
+  "0.8.8":  {name: Receive periodic reports,                       management: Y,   employee: N,   admin: N}
+  "0.8.9":  {name: "View all operational data, events, contracts", management: Y,   employee: N,   admin: N}
+  "0.8.10": {name: "Enter client, contract, event data",           management: TBD, employee: Y,   admin: TBD}
+  "0.8.11": {name: Upload and archive documents,                   management: TBD, employee: TBD, admin: TBD}
+  "0.8.12": {name: Access all documents and records,               management: Y,   employee: N,   admin: TBD}
+  "0.8.13": {name: View floor plan and booth status,               management: TBD, employee: Y,   admin: TBD}
+  "0.8.14": {name: Upload and update floor plan,                   management: TBD, employee: TBD, admin: TBD}
+  "0.8.15": {name: Review automation and alert logs,               management: Y,   employee: N,   admin: TBD}
+  "0.8.16": {name: Configure automation and alert settings,        management: N,   employee: N,   admin: Y}
+  "0.8.17": {name: "Create, edit, deactivate user accounts",       management: N,   employee: N,   admin: Y}
+  "0.8.18": {name: Configure roles and permissions,                management: N,   employee: N,   admin: Y}
+  "0.8.19": {name: Manage knowledge base and ingested documents,   management: N,   employee: N,   admin: Y}
+  "0.8.20": {name: Review system logs and resolve issues,          management: N,   employee: N,   admin: Y}
+  "0.8.21": {name: View confidential operational data,             management: Y,   employee: N,   admin: N}
+
+poc_decisions:
+  # 2.2.1 leaves Employee access to the advisor open. The PoC allows it so the demo can
+  # show the advisor binding figures only from documents in the employee's own scope.
+  "0.8.2": {employee: Y}
