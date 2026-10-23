@@ -1,42 +1,43 @@
-# Defined messages (SRS 1.7.2, 2.9.1, 0.10.7). PENDING: replace with the exact SRS table text.
-# tests/test_messages.py fails if app/assistant/messages.py drifts from this file.
+# Defined messages transcribed from the SRS v1 tables: M1 0.10.2, M2-M8 1.7.2, M9-M12 2.9.1,
+# PAYMENT 0.10.7. Arabic lam-alef ligatures are corrected from the PDF text layer, which
+# extracts them reversed. tests/test_messages.py fails if messages.py drifts from this file.
 M1:
-  en: No information was found for this request.
-  ar: لم يتم العثور على معلومات لهذا الطلب.
+  en: I could not find a document matching your request within your access.
+  ar: لم أتمكن من العثور على مستند مطابق لطلبك ضمن صلاحيات الوصول المتاحة لك.
 M2:
-  en: This request is outside the scope of the assistant.
-  ar: هذا الطلب خارج نطاق عمل المساعد.
+  en: I answer questions from company documents only.
+  ar: أجيب عن الأسئلة من مستندات الشركة فقط.
 M3:
-  en: The service is temporarily unavailable. Please try again shortly.
-  ar: الخدمة غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى بعد قليل.
+  en: The assistant is temporarily unavailable. Please try again in a few minutes.
+  ar: المساعد غير متاح مؤقتًا. يرجى المحاولة مرة أخرى بعد بضع دقائق.
 M4:
-  en: The request took too long to complete. Please try again.
-  ar: استغرق الطلب وقتاً أطول من المسموح. يرجى المحاولة مرة أخرى.
+  en: This is taking longer than expected. Please try again.
+  ar: يستغرق هذا وقتًا أطول من المتوقع. يرجى المحاولة مرة أخرى.
 M5:
-  en: The request is too long. Please shorten it and try again.
-  ar: الطلب طويل جداً. يرجى اختصاره والمحاولة مرة أخرى.
+  en: Your question is too long. Please shorten it to {max} characters or fewer.
+  ar: سؤالك طويل جدًا. يرجى اختصاره إلى {max} حرفًا أو أقل.
 M6:
-  en: Too many requests. Please wait a moment before trying again.
-  ar: تم تجاوز عدد الطلبات المسموح به. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.
+  en: You have reached the query limit. Try again in {n} seconds.
+  ar: وصلت إلى الحد الأقصى للاستعلامات. حاول مرة أخرى بعد {n} ثانية.
 M7:
-  en: The documents contain conflicting information. Both values are shown below.
-  ar: تحتوي المستندات على معلومات متعارضة. تُعرض القيمتان أدناه.
+  en: These documents give different answers.
+  ar: تعطي هذه المستندات إجابات مختلفة.
 M8:
-  en: This answer was generated from company documents. Verify it against the cited sources before relying on it.
-  ar: تم إنشاء هذه الإجابة من مستندات الشركة. يرجى التحقق منها مقابل المصادر المذكورة قبل الاعتماد عليها.
+  en: This answer was written by AI from company documents. Check the quoted source before relying on it.
+  ar: كُتبت هذه الإجابة بواسطة الذكاء الاصطناعي من مستندات الشركة. تحقق من المصدر المقتبس قبل الاعتماد عليها.
 M9:
-  en: Your session has ended. Please sign in again.
-  ar: انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.
+  en: I could not find this figure in the documents available to you.
+  ar: لم أتمكن من العثور على هذا الرقم في المستندات المتاحة لك.
 M10:
-  en: You do not have permission to use this feature.
-  ar: ليست لديك صلاحية لاستخدام هذه الميزة.
+  en: I could not complete this calculation. Please rephrase it or provide the missing figures.
+  ar: لم أتمكن من إتمام هذه العملية الحسابية. يرجى إعادة الصياغة أو توفير الأرقام الناقصة.
 M11:
-  en: The selected conversation history has been deleted.
-  ar: تم حذف سجل المحادثة المحدد.
+  en: This formula cannot be applied. Please check its terms.
+  ar: لا يمكن تطبيق هذه الصيغة. يرجى التحقق من عناصرها.
 M12:
-  en: The calculation cannot be completed with these values.
-  ar: لا يمكن إتمام العملية الحسابية بهذه القيم.
+  en: This calculation is not possible with these values.
+  ar: هذه العملية الحسابية غير ممكنة بهذه القيم.
 PAYMENT:
-  en: The assistant cannot make, approve or record payments or financial transactions.
-  ar: لا يستطيع المساعد تنفيذ المدفوعات أو اعتمادها أو تسجيلها، ولا أي معاملات مالية.
+  en: I cannot process payments or financial transactions. This system covers operations and revenue analysis only.
+  ar: لا يمكنني تنفيذ المدفوعات أو المعاملات المالية. يقتصر هذا النظام على العمليات وتحليل الإيرادات.
 
