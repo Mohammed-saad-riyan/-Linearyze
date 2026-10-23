@@ -23,8 +23,10 @@ class Settings(BaseSettings):
     # Language model providers, tried in this order (app/llm.py); unconfigured ones are
     # skipped. Gemini first, Cohere Command A on the same key as search as the fallback.
     llm_providers: str = "gemini,cohere,anthropic"
-    gemini_fast_model: str = "gemini-2.5-flash"
-    gemini_writer_model: str = "gemini-2.5-flash"
+    # Tried in order on the free tier: 3.5-flash grades in about 2 s with thinking at low;
+    # its lite sibling takes over when Google reports high demand (503) or a quota (429).
+    # 3.8-flash missed a 40 s deadline on this tier; 2.5-flash is closed to new keys.
+    gemini_models: str = "gemini-3.5-flash,gemini-3.5-flash-lite"
     cohere_chat_model: str = "command-a-03-2025"
     # Grading and extraction are on the M1 latency path, so on Claude they use the faster
     # model with thinking off; writing the Output B answer gets the stronger one.
@@ -75,10 +77,11 @@ GRADE_GAP = 0.15
 
 # M1 (SRS 1.5.4): every M1 response is held until this many seconds after the request
 # started, so "does not exist", "no access", "below threshold" and "not indexed" take the
-# same time. Set above the slowest path that can end in M1 (grade + retrieve + rerank):
-# usually 3 to 6 s live, but a 9.3 s grade was seen, and a path that overruns the floor
-# would reveal its cause by timing. Trade-off: every M1 waits this long.
-M1_LATENCY_FLOOR_S = 10.0
+# same time. Set above the slowest path that can end in M1: an Output B whose every
+# sentence fails validation after one regeneration (12.7 s seen on Gemini; answers that
+# pass take up to about 19 s). A path that overran the floor would reveal its cause by
+# timing. Trade-off: every M1 waits this long.
+M1_LATENCY_FLOOR_S = 20.0
 M1_LATENCY_FLOOR_OFFLINE_S = 0.6
 
 MAX_QUERY_CHARS = 2000  # beyond this the request gets M5

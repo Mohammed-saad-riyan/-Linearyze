@@ -115,29 +115,40 @@ def _gemini() -> genai.Client:
 
 
 def _call_gemini(system: str, user: str, schema: type[BaseModel], writer: bool) -> str:
-    try:
-        response = _gemini().models.generate_content(
-            model=settings.gemini_writer_model if writer else settings.gemini_fast_model,
-            contents=user,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=system,
-                temperature=0,
-                response_mime_type="application/json",
-                response_json_schema=json_schema(schema),
-            ),
-        )
-    except httpx.TimeoutException as exc:
-        raise LLMTimeout from exc
-    except (genai_errors.APIError, httpx.HTTPError) as exc:
-        raise LLMUnavailable from exc
-    if not response.text:
-        raise LLMUnavailable("empty response")
-    return response.text
+    config = genai_types.GenerateContentConfig(
+        system_instruction=system,
+        temperature=0,
+        response_mime_type="application/json",
+        response_json_schema=json_schema(schema),
+        thinking_config=genai_types.ThinkingConfig(thinking_level="low"),
+    )
+    models = [m.strip() for m in settings.gemini_models.split(",") if m.strip()]
+    last: Exception = LLMUnavailable("no Gemini model configured")
+    for model in models:
+        try:
+            response = _gemini().models.generate_content(model=model, contents=user, config=config)
+        except httpx.TimeoutException as exc:
+            last = LLMTimeout(model)
+            last.__cause__ = exc
+            continue
+        except genai_errors.APIError as exc:
+            # 503 high demand and 429 quota are per model: try the next one.
+            last = LLMUnavailable(f"{model}: {exc.code}")
+            last.__cause__ = exc
+            continue
+        except httpx.HTTPError as exc:
+            raise LLMUnavailable from exc
+        if response.text:
+            return response.text
+        last = LLMUnavailable(f"{model}: empty response")
+    raise last
 
 
 @cache
 def _cohere() -> cohere.ClientV2:
-    return cohere.ClientV2(api_key=settings.cohere_api_key, timeout=TIMEOUT_S)
+    # Trial-key chat calls answer in 0.4 to 7 s but about one in six stalls; a 12 s attempt
+    # plus one retry recovers faster than a single 30 s wait.
+    return cohere.ClientV2(api_key=settings.cohere_api_key, timeout=12)
 
 
 def _call_cohere(system: str, user: str, schema: type[BaseModel], writer: bool) -> str:
@@ -150,6 +161,7 @@ def _call_cohere(system: str, user: str, schema: type[BaseModel], writer: bool) 
             ],
             response_format=cohere.JsonObjectResponseFormatV2(json_schema=json_schema(schema)),
             temperature=0,
+            request_options={"max_retries": 1},
         )
     except httpx.TimeoutException as exc:
         raise LLMTimeout from exc
