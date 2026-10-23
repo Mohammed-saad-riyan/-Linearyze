@@ -124,6 +124,7 @@ def grade_offline(query: str) -> GradeResult:
         filters=filters,
         depends_on=depends_on,
         topic=topic or query,
-        query_en=query,
-        query_ar=query,
+        # No translation offline: both renderings are the topic, so reranking sees it once.
+        query_en=topic or query,
+        query_ar=topic or query,
     )

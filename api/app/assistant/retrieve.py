@@ -20,8 +20,7 @@ from app.config import (
     VECTOR_CANDIDATES,
 )
 from app.db.session import Conn
-from app.ingest.index import passage_context
-from app.text.terms import coverage, or_tsquery, terms
+from app.text.terms import coverage, or_tsquery, passage_context, terms
 
 
 @dataclass
@@ -105,13 +104,13 @@ def search_passages(
         ).fetchall()
     }
     ordered = [rows[cid] for cid in candidate_ids]
-    scores = rerank.rerank(
-        query,
-        [
-            passage_context(r["title"], r["title_alt"], r["heading"], r["text_original"])
-            for r in ordered
-        ],
-    )
+    texts = [
+        passage_context(r["title"], r["title_alt"], r["heading"], r["text_original"])
+        for r in ordered
+    ]
+    # One rerank call with both renderings of the question: rerank-v3.5 is multilingual,
+    # and one call per search keeps us inside the provider's rate limit.
+    scores = rerank.rerank(" / ".join(dict.fromkeys([query, *plan.alt_queries])), texts)
     cutoff = rerank.threshold()
     hits = [
         PassageHit(
@@ -176,7 +175,10 @@ def find_documents(
     by_title = _documents_by_title(conn, plan, topic)
     if by_title:
         return by_title
-    return _best_per_document(search_passages(conn, plan, topic, query_vector), via="passage")
+    # Handing over a whole document needs more than a passage that is merely on topic.
+    floor = rerank.document_threshold()
+    hits = [h for h in search_passages(conn, plan, topic, query_vector) if h.score >= floor]
+    return _best_per_document(hits, via="passage")
 
 
 def _best_per_document(hits: list[PassageHit], via: str) -> list[DocumentHit]:
