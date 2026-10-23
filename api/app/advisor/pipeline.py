@@ -26,6 +26,7 @@ from app.advisor.evaluate import (
 )
 from app.advisor.formula import Formula, FormulaError, Var, display, parse_formula, variables
 from app.advisor.grade import FinalAdvisorGrade, grade
+from app.assistant.grade_offline import requested_version
 from app.assistant.messages import Lang, MessageId, message
 from app.assistant.pipeline import Citation, DocumentCard, SourceRef, _cards, render_message
 from app.assistant.plan import Plan, resolve_event
@@ -213,7 +214,8 @@ def run(conn: Conn, query: str, history: list[str], debug: bool = False) -> Advi
         term_list = [Var(label, label)]
 
     event_id = resolve_event(conn, f"{graded.result.context or ''} {query}")
-    plan = Plan(event_id=event_id)
+    # A figure "from version 1 of the price list" binds against that version only (1.2.13).
+    plan = Plan(event_id=event_id, version=requested_version(query))
     context = graded.result.context or ""
     remainder = (
         query.replace(graded.formula_text or "", " ") if graded.formula_source == "user" else query

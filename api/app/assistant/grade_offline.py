@@ -48,12 +48,26 @@ _VERSION = [
     (r"(الاصدار|النسخه) (الاول|الاولي|السابق|القديم)", 1),
 ]
 
-_SENDER_CUE = r"(?:from|by|sent by|issued by|من|الوارد من|الصادر من|المرسل من)\s+(?:the\s+)?"
-_CLIENT_CUE = r"(?:for|with|of|signed with|with client|لـ|ل|مع|الخاص ب|الخاصه ب)\s*"
+
+def requested_version(text: str) -> int | None:
+    """A document version the text asks for ("version 1", "the original version",
+    "النسخة الأولى"), or None for the latest. Shared with the advisor's plan."""
+    q = normalize(text)
+    for pattern, fixed in _VERSION:
+        match = re.search(pattern, q)
+        if match:
+            return fixed if fixed is not None else int(match.group(2))
+    return None
+
+
+# Cues start at a word boundary: an unanchored "ل" once matched inside "طلب" and cut the
+# topic short. A bare "ل" prefix is not a cue at all; too many words begin with it.
+_SENDER_CUE = r"(?:^|\s)(?:from|by|sent by|issued by|من|الوارد من|الصادر من|المرسل من)\s+(?:the\s+)?"
+_CLIENT_CUE = r"(?:^|\s)(?:for|with|of|signed with|with client|مع|الخاص ب|الخاصه ب)\s+|(?:^|\s)لـ"
 
 
 def _find_after(cue: str, text: str) -> tuple[str, tuple[int, int]] | None:
-    match = re.search(cue + r"([^,.?؟،]+)", text)
+    match = re.search(f"(?:{cue})" + r"([^,.?؟،]+)", text)
     return (match.group(1).strip(), match.span()) if match else None
 
 
@@ -96,11 +110,7 @@ def grade_offline(query: str) -> GradeResult:
         start, end = found[1]
         topic = (q_head[:start] + q_head[end:]).strip()
 
-    for pattern, fixed in _VERSION:
-        match = re.search(pattern, q)
-        if match:
-            filters.version = fixed if fixed is not None else int(match.group(2))
-            break
+    filters.version = requested_version(query)
 
     for date_match in re.finditer(r"\b(20\d\d)-(\d\d)-(\d\d)\b", q):
         day = dt.date(*map(int, date_match.groups()))
@@ -114,6 +124,10 @@ def grade_offline(query: str) -> GradeResult:
         scores.DR = 1.0
     elif re.search(_IR_START, q) or q.endswith(("?", "؟")):
         scores.IR = 1.0
+    elif filters.doc_type is not None:
+        # A bare phrase that names a kind of document ("Exhibitor Agreement with Qamar")
+        # is a request for it; this is also how an Output C option comes back (1.6.15).
+        scores.DR = 1.0
     else:
         scores.DR, scores.IR = 0.6, 0.5
 

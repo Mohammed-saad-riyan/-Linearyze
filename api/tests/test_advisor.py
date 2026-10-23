@@ -242,3 +242,27 @@ def test_2_1_3_no_stored_formula_library() -> None:
             if not line.lstrip().startswith(("#", '"', "'"))
         )
         assert not forbidden.search(code), f"business formula in {path.name}"
+
+
+def test_2_7_5_whole_number_times_a_per_booth_price_counts_booths() -> None:
+    q = evaluate(
+        parse_formula("r = confirmed revenue + 10 × standard booth price").expression,
+        {
+            "confirmed_revenue": Quantity(Decimal(768000), SAR),
+            "standard_booth_price": Quantity(Decimal(12000), unit_of(SAR=1, booth=-1)),
+        },
+    )
+    assert q == Quantity(Decimal(888000), SAR)
+    markup = evaluate(
+        parse_formula("r = standard booth price × 1.15").expression,
+        {"standard_booth_price": Quantity(Decimal(12000), unit_of(SAR=1, booth=-1))},
+    )
+    assert markup.unit == unit_of(SAR=1, booth=-1)  # a fraction stays a multiplier
+
+
+def test_1_2_13_advisor_binds_a_requested_older_version(employee: TestClient) -> None:
+    latest = ask(employee, "For Expo 2026: income = 10 × standard booth price")
+    older = ask(employee, "Using version 1 of the price list: income = 10 × standard booth price")
+    assert latest["result"]["value"] == "120,000"
+    assert older["result"]["value"] == "100,000"
+    assert older["inputs"][0]["document_id"] == "PRC-2026-V1"

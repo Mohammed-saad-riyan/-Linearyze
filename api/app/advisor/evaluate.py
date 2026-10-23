@@ -102,6 +102,7 @@ def _eval(node: Node, inputs: dict[str, Quantity]) -> Quantity:
                 unit = a.unit if a.unit is not None else b.unit
                 return Quantity(a.value + b.value if op == "+" else a.value - b.value, unit)
             if op == "*":
+                a, b = _count_of(a, b), _count_of(b, a)
                 unit = _combine(a.unit or (), b.unit or (), +1) if (a.unit or b.unit) else None
                 return Quantity(a.value * b.value, unit)
             if b.value == 0:
@@ -109,6 +110,16 @@ def _eval(node: Node, inputs: dict[str, Quantity]) -> Quantity:
             unit = _combine(a.unit or (), b.unit or (), -1) if (a.unit or b.unit) else None
             return Quantity(a.value / b.value, unit)
     raise TypeError(node)
+
+
+def _count_of(number: Quantity, other: Quantity) -> Quantity:
+    """A bare whole number times a per-item quantity counts those items: in "10 x standard
+    booth price" (SAR per booth) the 10 is 10 booths, so the product is in SAR. A fraction
+    stays a plain multiplier ("price x 1.15" is still SAR per booth)."""
+    if number.unit is not None or number.value != number.value.to_integral_value():
+        return number
+    per = [base for base, exp in other.unit or () if exp == -1 and base in COUNT_UNITS]
+    return Quantity(number.value, unit_of(**{per[0]: 1})) if len(per) == 1 else number
 
 
 @dataclass(frozen=True)
